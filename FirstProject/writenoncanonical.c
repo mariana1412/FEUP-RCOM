@@ -5,28 +5,25 @@
 #include <fcntl.h>
 #include <termios.h>
 #include <stdio.h>
+#include <stdlib.h>
+#include "macros.h"
 
-#define BAUDRATE B38400
-#define MODEMDEVICE "/dev/ttyS1"
-#define _POSIX_SOURCE 1 /* POSIX compliant source */
-#define FALSE 0
-#define TRUE 1
 
 volatile int STOP=FALSE;
 
 int main(int argc, char** argv)
 {
-    int fd,c, res;
-    struct termios oldtio,newtio;
-    char buf[255];
-    int i, sum = 0, speed = 0;
+  int fd,c, res;
+  struct termios oldtio,newtio;
+  char buf[255];
+  int sum = 0, speed = 0;
     
-    if ( (argc < 2) || 
-  	     ((strcmp("/dev/ttyS10", argv[1])!=0) &&
-  	      (strcmp("/dev/ttyS11", argv[1])!=0) )) {
-      printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
-      exit(1);
-    }
+    // if ( (argc < 2) || 
+  	//      ((strcmp("/dev/ttyS10", argv[1])!=0) &&
+  	//       (strcmp("/dev/ttyS11", argv[1])!=0) )) {
+    //   printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
+    //   exit(1);
+    // }
 
 
   /*
@@ -35,47 +32,53 @@ int main(int argc, char** argv)
   */
 
 
-    fd = open(argv[1], O_RDWR | O_NOCTTY );
-    if (fd <0) {perror(argv[1]); exit(-1); }
+  fd = open(argv[1], O_RDWR | O_NOCTTY );
+  if (fd <0) {
+    perror(argv[1]); 
+    exit(-1); 
+  }
 
-    if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
-      perror("tcgetattr");
-      exit(-1);
-    }
+  if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
+    perror("tcgetattr");
+    exit(-1);
+  }
 
-    bzero(&newtio, sizeof(newtio));
-    newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
-    newtio.c_iflag = IGNPAR;
-    newtio.c_oflag = 0;
+  bzero(&newtio, sizeof(newtio));
+  newtio.c_cflag = BAUDRATE | CS8 | CLOCAL | CREAD;
+  newtio.c_iflag = IGNPAR;
+  newtio.c_oflag = 0;
 
-    /* set input mode (non-canonical, no echo,...) */
-    newtio.c_lflag = 0;
+  /* set input mode (non-canonical, no echo,...) */
+  newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = 5;   /* blocking read until 5 chars received */
+  newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
+  newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
 
-
-
-  /* 
-    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
-    leitura do(s) pr�ximo(s) caracter(es)
-  */
+/* 
+  VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
+  leitura do(s) pr�ximo(s) caracter(es)
+*/
 
 
 
-    tcflush(fd, TCIOFLUSH);
+  tcflush(fd, TCIOFLUSH);
 
-    if ( tcsetattr(fd,TCSANOW,&newtio) == -1) {
-      perror("tcsetattr");
-      exit(-1);
-    }
+  if ( tcsetattr(fd,TCSANOW,&newtio) == -1) {
+    perror("tcsetattr");
+    exit(-1);
+  }
 
-    printf("New termios structure set\n");
+  printf("New termios structure set\n");
 
-    printf("Enter a message: ");
-    fgets(buf, 255, stdin);
-    res = write(fd, buf, strlen(buf) +1);
-    printf("%d bytes written\n", res);
+  char set_frame[SET_FRAME_SIZE];
+  set_frame[0] = FLAG;
+  set_frame[1] = SEND_ADDRESS;
+  set_frame[2] = SET_COMMAND;
+  set_frame[3] = set_frame[1] ^ set_frame[2];
+  set_frame[4] = FLAG;
+
+  res = write(fd, set_frame, SET_FRAME_SIZE);
+  printf("%d bytes written\n", res);
  
 
   /* 
@@ -83,19 +86,32 @@ int main(int argc, char** argv)
     o indicado no gui�o 
   */
 
-    char message[255];
-    res = read(fd, message, 255);
-    printf("Message received: %s", message);
+  char ua_frame[SET_FRAME_SIZE];
+  int flag = 0;
+  int i = 0;
 
-   
-    if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
-      perror("tcsetattr");
-      exit(-1);
-    }
+  while (STOP==FALSE) {       /* loop for input */
+    res = read(fd,buf,1);   /* returns after 1 chars have been input */
+    buf[res]=0;               /* so we can printf... */
+
+    printf("%d\n", buf[0]);
+
+    ua_frame[i] = buf[0];
+    if (ua_frame[i] == FLAG) flag++;
+    i++;
+
+    if (flag >1) STOP=TRUE;
+  }
 
 
+  printf("Message received: %s\n", ua_frame);
+  
+  sleep(1);
+  if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+    perror("tcsetattr");
+    exit(-1);
+  }
 
-
-    close(fd);
-    return 0;
+  close(fd);
+  return 0;
 }
