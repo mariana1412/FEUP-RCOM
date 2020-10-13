@@ -1,28 +1,23 @@
 /*Non-Canonical Input Processing*/
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <termios.h>
-#include <stdio.h>
 #include <stdlib.h>
-
-#include "macros.h"
-
-volatile int STOP=FALSE;
+#include <string.h>
+#include "protocol.h"
 
 int main(int argc, char** argv){
 
-  int fd,c, res;
-  struct termios oldtio,newtio;
-  char buf[255];
+  int fd, c;
+  struct termios oldtio, newtio;
 
-  // if ( (argc < 2) || 
-  //      ((strcmp("/dev/ttyS10", argv[1])!=0) &&
-  //       (strcmp("/dev/ttyS11", argv[1])!=0) )) {
-  //   printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS10\n");
-  //   exit(1);
-  // }
+  if ( (argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0)) || ((strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
+    printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
+    exit(1);
+  }
 
 
   /*
@@ -32,9 +27,9 @@ int main(int argc, char** argv){
 
 
   fd = open(argv[1], O_RDWR | O_NOCTTY );
-  if (fd <0) {perror(argv[1]); exit(-1); }
+  if (fd < 0) {perror(argv[1]); exit(-1); }
 
-  if ( tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
+  if (tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
     perror("tcgetattr");
     exit(-1);
   }
@@ -58,51 +53,27 @@ int main(int argc, char** argv){
   */
 
 
-
   tcflush(fd, TCIOFLUSH);
 
-  if ( tcsetattr(fd,TCSANOW,&newtio) == -1) {
+  if ( tcsetattr(fd, TCSANOW, &newtio) == -1) {
     perror("tcsetattr");
     exit(-1);
   }
 
   printf("New termios structure set\n");
 
-  char set_frame[SET_FRAME_SIZE];
-  int i = 0;
-  int flag = 0;
-
-  while (STOP==FALSE) {       /* loop for input */
-    res = read(fd,buf,1);   /* returns after 1 chars have been input */
-    buf[res]=0;               /* so we can printf... */
-
-    printf("%d\n", buf[0]);
-
-    set_frame[i] = buf[0];
-    if (set_frame[i] == FLAG) flag++;
-    i++;
-
-    if (flag >1) STOP=TRUE;
+  if (receiveSetFrame(fd) == -1) {
+    printf("The SET Frame received is wrong!\n");
+    exit(-1);
   }
 
-
-
-  /* 
-  O ciclo WHILE deve ser alterado de modo a respeitar o indicado no gui�o 
-  */
-
-  char ua_frame[SET_FRAME_SIZE];
-  ua_frame[0] = set_frame[0];
-  ua_frame[1] = set_frame[1];
-  ua_frame[2] = UA_ANSWER;
-  ua_frame[3] = ua_frame[1] ^ ua_frame[2];
-  ua_frame[4] = set_frame[4];
-
-  res = write(fd, ua_frame, SET_FRAME_SIZE);
-  printf("%d bytes written\n", res);
+  if(sendUAFrame(fd) == -1){
+    printf("Could not send UA FRAME!\n");
+    exit(-1);
+  }
 
   sleep(1);
-  tcsetattr(fd,TCSANOW,&oldtio);
+  tcsetattr(fd, TCSANOW, &oldtio);
   close(fd);
   return 0;
 }

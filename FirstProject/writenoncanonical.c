@@ -1,36 +1,30 @@
 /*Non-Canonical Input Processing*/
 
+#include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <termios.h>
-#include <stdio.h>
 #include <stdlib.h>
-#include "macros.h"
+#include <string.h>
+#include <unistd.h>
+#include "protocol.h"
 
 
-volatile int STOP=FALSE;
-
-int main(int argc, char** argv)
-{
-  int fd,c, res;
-  struct termios oldtio,newtio;
-  char buf[255];
+int main(int argc, char** argv) {
+  int fd, c;
+  struct termios oldtio, newtio;
   int sum = 0, speed = 0;
-    
-    // if ( (argc < 2) || 
-  	//      ((strcmp("/dev/ttyS10", argv[1])!=0) &&
-  	//       (strcmp("/dev/ttyS11", argv[1])!=0) )) {
-    //   printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
-    //   exit(1);
-    // }
-
+  
+  if ( (argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0)) || ((strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
+    printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
+    exit(1);
+  }
 
   /*
     Open serial port device for reading and writing and not as controlling tty
     because we don't want to get killed if linenoise sends CTRL-C.
   */
-
 
   fd = open(argv[1], O_RDWR | O_NOCTTY );
   if (fd <0) {
@@ -54,12 +48,10 @@ int main(int argc, char** argv)
   newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
   newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
 
-/* 
-  VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
-  leitura do(s) pr�ximo(s) caracter(es)
-*/
-
-
+  /* 
+    VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
+    leitura do(s) pr�ximo(s) caracter(es)
+  */
 
   tcflush(fd, TCIOFLUSH);
 
@@ -70,41 +62,15 @@ int main(int argc, char** argv)
 
   printf("New termios structure set\n");
 
-  char set_frame[SET_FRAME_SIZE];
-  set_frame[0] = FLAG;
-  set_frame[1] = SEND_ADDRESS;
-  set_frame[2] = SET_COMMAND;
-  set_frame[3] = set_frame[1] ^ set_frame[2];
-  set_frame[4] = FLAG;
-
-  res = write(fd, set_frame, SET_FRAME_SIZE);
-  printf("%d bytes written\n", res);
- 
-
-  /* 
-    O ciclo FOR e as instru��es seguintes devem ser alterados de modo a respeitar 
-    o indicado no gui�o 
-  */
-
-  char ua_frame[SET_FRAME_SIZE];
-  int flag = 0;
-  int i = 0;
-
-  while (STOP==FALSE) {       /* loop for input */
-    res = read(fd,buf,1);   /* returns after 1 chars have been input */
-    buf[res]=0;               /* so we can printf... */
-
-    printf("%d\n", buf[0]);
-
-    ua_frame[i] = buf[0];
-    if (ua_frame[i] == FLAG) flag++;
-    i++;
-
-    if (flag >1) STOP=TRUE;
+  if(sendSetFrame(fd) == -1){
+    printf("Could not send SET Frame!\n");
+    exit(-1);
   }
 
-
-  printf("Message received: %s\n", ua_frame);
+  if(receiveUAFrame(fd) == -1){
+    printf("The UA Frame received is wrong!\n");
+    exit(-1);
+  }
   
   sleep(1);
   if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
