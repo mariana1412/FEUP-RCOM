@@ -1,12 +1,15 @@
 CC = gcc
 CFLAGS = -Wall -Wextra -g
+
 SENDER_OBJ = sender
 SENDER_SRC = writenoncanonical.c
+
 RECEIVER_OBJ = receiver
-RECEIVER_SRC = noncanonical.C
+RECEIVER_SRC = noncanonical.c
+
 AUX_OBJ = protocol
 AUX_SRC = protocol.c
-TARGETS = sender receiver
+
 
 all: sender receiver
 

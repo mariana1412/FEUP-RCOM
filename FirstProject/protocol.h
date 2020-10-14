@@ -11,4 +11,4 @@ int sendUAFrame(int fd);
 
 int receiveUAFrame(int fd);
 
-#endif /*MACROS_H*/
+#endif /*PROTOCOL_H*/

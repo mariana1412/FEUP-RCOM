@@ -10,11 +10,10 @@
 #include "protocol.h"
 
 int main(int argc, char** argv){
-
-  int fd, c;
+  int fd;
   struct termios oldtio, newtio;
 
-  if ( (argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0)) || ((strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
+  if ( (argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0) && (strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
     printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
     exit(1);
   }
@@ -66,6 +65,8 @@ int main(int argc, char** argv){
     printf("The SET Frame received is wrong!\n");
     exit(-1);
   }
+
+  sleep(20);
 
   if(sendUAFrame(fd) == -1){
     printf("Could not send UA FRAME!\n");

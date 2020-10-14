@@ -1,5 +1,6 @@
 /*Non-Canonical Input Processing*/
 
+
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -8,15 +9,23 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
+#include <signal.h>
 #include "protocol.h"
+
+int alarmFlag = 1;
+
+void alarmHandler(){
+    printf("HANDLERRR\n");
+    alarmFlag = 0;   
+}
 
 
 int main(int argc, char** argv) {
-  int fd, c;
+  int fd;
   struct termios oldtio, newtio;
-  int sum = 0, speed = 0;
-  
-  if ( (argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0)) || ((strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
+
+
+  if ( (argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0) && (strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
     printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
     exit(1);
   }
@@ -45,8 +54,8 @@ int main(int argc, char** argv) {
   /* set input mode (non-canonical, no echo,...) */
   newtio.c_lflag = 0;
 
-  newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-  newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
+  newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
+  newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
 
   /* 
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
@@ -62,18 +71,40 @@ int main(int argc, char** argv) {
 
   printf("New termios structure set\n");
 
-  if(sendSetFrame(fd) == -1){
-    printf("Could not send SET Frame!\n");
-    exit(-1);
+  (void) signal(SIGALRM, alarmHandler); 
+  int alarmStop = FALSE;
+
+  for(int i = 0; i < 4; i++){
+
+    if(sendSetFrame(fd) == -1){
+      printf("Could not send SET Frame!\n");
+      exit(-1);
+    }
+
+    alarmFlag = 1;
+    alarm(3);
+
+    while(alarmFlag){  
+      printf("BROOOOOO \n");
+      if(receiveUAFrame(fd) == 0){ 
+        alarm(0);
+        alarmStop = TRUE;
+        break;
+      }
+    }
+
+    if(alarmStop == TRUE){ 
+      printf("Received UA Frame with success!\n");
+      break;
+    }
   }
 
-  if(receiveUAFrame(fd) == -1){
-    printf("The UA Frame received is wrong!\n");
-    exit(-1);
+  if(alarmStop == FALSE){
+    printf("error \n");
   }
-  
+
   sleep(1);
-  if ( tcsetattr(fd,TCSANOW,&oldtio) == -1) {
+  if (tcsetattr(fd,TCSANOW,&oldtio) == -1) {
     perror("tcsetattr");
     exit(-1);
   }

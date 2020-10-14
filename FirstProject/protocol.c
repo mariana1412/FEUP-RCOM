@@ -59,7 +59,7 @@ int sendUAFrame(int fd) {
 
     res = write(fd, uaFrame, S_FRAME_SIZE);
 
-    if(res == -1) return -1;
+    if(res < 1) return -1;
     printf("UA message sent! %d bytes written\n", res);
 
     return 0;
@@ -74,6 +74,7 @@ int receiveUAFrame(int fd){
 
     while (STOP == FALSE) {       /* loop for input */
         res = read(fd, buf, 1);   /* returns after 1 chars have been input */
+        if(res < 1) return -1;
         buf[res] = 0;               /* so we can printf... */
 
         printf("%d\n", buf[0]);
@@ -84,7 +85,7 @@ int receiveUAFrame(int fd){
 
         if (flag > 1) STOP=TRUE;
     }
-
+    
     /* if (setFrame[2] != SET_COMMAND) return 1; perguntar ao stor sobre verificação */
 
     if (uaFrame[3] != (uaFrame[1] ^ uaFrame[2])) return -1;
