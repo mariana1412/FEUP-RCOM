@@ -3,6 +3,8 @@
 
 #include "macros.h"
 
+typedef enum State{START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, STOP} State;
+
 int sendSetFrame(int fd);
 
 int receiveSetFrame(int fd);

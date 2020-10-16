@@ -7,7 +7,14 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <string.h>
+#include <signal.h>
 #include "protocol.h"
+
+int alarmFlag = 1;
+
+void alarmHandler(){
+    alarmFlag = 0;   
+}
 
 int main(int argc, char** argv){
   int fd;
@@ -41,8 +48,8 @@ int main(int argc, char** argv){
   /* set input mode (non-canonical, no echo,...) */
   newtio.c_lflag = 0;
 
-  newtio.c_cc[VTIME]    = 0;   /* inter-character timer unused */
-  newtio.c_cc[VMIN]     = 1;   /* blocking read until 5 chars received */
+  newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
+  newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
 
 
 
@@ -61,12 +68,26 @@ int main(int argc, char** argv){
 
   printf("New termios structure set\n");
 
-  if (receiveSetFrame(fd) == -1) {
-    printf("The SET Frame received is wrong!\n");
-    exit(-1);
+  (void) signal(SIGALRM, alarmHandler); 
+
+  alarm(13);
+
+  while(alarmFlag){
+    if (receiveSetFrame(fd) == -1) {
+      printf("The SET Frame received is wrong!\n");
+      exit(-1);
+    }
+    else {
+      alarm(0);
+      break;
+    }
   }
 
-  sleep(20);
+  if(alarmFlag == 0){
+    printf("The SET Frame was never received!\n");
+    exit(-1);
+  }
+  //sleep(5);
 
   if(sendUAFrame(fd) == -1){
     printf("Could not send UA FRAME!\n");

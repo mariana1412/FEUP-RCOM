@@ -1,13 +1,88 @@
 #include "protocol.h"
 
-volatile int STOP=FALSE;
+volatile int FINISH = FALSE;
+
+int changeState(State *state, unsigned char byte, char msg){ //mudar nome de msg -> S se SET, U se UA
+    switch (*state)
+    {
+    case START:
+        if(byte == FLAG){
+            *state = FLAG_RCV;
+            printf("state = flag -> flag!!! \n");
+        }
+        break;
+    
+    case FLAG_RCV:
+        if(byte == FLAG)
+            printf("state = flag_rcv -> flag!!! \n");
+        
+        else if(byte == SEND_REC){
+            printf("state = flag_rcv -> a_rec!!! \n");
+            *state = A_RCV;
+        }
+        else
+        {
+            printf("state = flag_rcv -> else!!! \n");
+            *state = START;
+        }
+        
+        break;
+
+    case A_RCV:
+        if((msg == 's' && (byte == SET_COMMAND)) || (msg == 'u' && (byte == UA_ANSWER))){
+            printf("state = a_rcv -> set ou ua!!! \n");
+            *state = C_RCV;
+        }  
+        else if(byte == FLAG){
+            printf("state = a_rcv -> flag!!! \n");
+            *state = FLAG_RCV;
+        }
+        else {
+            printf("state = a_rcv -> else!!! \n");
+            *state = START;
+        }
+
+        break;
+    
+    case C_RCV:
+        if((msg == 's' && (byte == (SEND_REC ^ SET_COMMAND))) || (msg == 'u' && (byte == (SEND_REC ^ UA_ANSWER)))){
+            printf("state = c_rcv -> ^ !!! \n");
+            *state = BCC_OK;
+        }  
+        else if(byte == FLAG){
+            printf("state = c_rcv -> flag!!! \n");
+            *state = FLAG_RCV;
+        }
+        else {
+            printf("state = c_rcv -> else!!! \n");
+            *state = START;
+        }
+        break;
+
+    case BCC_OK:
+        if(byte == FLAG){
+            printf("state = bcc_ok -> flag!!! \n");
+            *state = STOP;
+        }
+        else{
+            printf("state = bcc_ok -> else!!! \n");
+            *state = START;
+        }
+        break;
+
+    default:
+        break;
+    }
+}
+
+
 
 int sendSetFrame(int fd){
     int res;
     char setFrame[S_FRAME_SIZE];
 
     setFrame[0] = FLAG;
-    setFrame[1] = SEND_REC;
+    setFrame[1] = 0x00;
     setFrame[2] = SET_COMMAND;
     setFrame[3] = SEND_REC ^ SET_COMMAND;
     setFrame[4] = FLAG;
@@ -24,26 +99,23 @@ int receiveSetFrame(int fd){
     char setFrame[S_FRAME_SIZE];
     char buf[255];
     int i = 0;
-    int flag = 0;
+
     int res;
 
-    while (STOP == FALSE) {       // loop for input 
-        res = read(fd, buf, 1);   // returns after 1 chars have been input 
-        buf[res] = 0;               // so we can printf... 
+    State state = START;
+
+    while (state != STOP) {
+        res = read(fd, buf, 1);
+        if(res < 1) continue;
+        buf[res] = 0;            
 
         printf("%d\n", buf[0]);
+        changeState(&state, buf[0], 's');
 
         setFrame[i] = buf[0];
-        if (setFrame[i] == FLAG) flag++;
         i++;
-
-        if (flag > 1) STOP = TRUE;
     }
-
-    /* if (setFrame[2] != SET_COMMAND) return 1; perguntar ao stor sobre verificação */
-
-    if (setFrame[3] != (setFrame[1] ^ setFrame[2])) return -1;
-
+    //falta aqui condição de erro apra sair com -1
     return 0;
 }
 
@@ -68,27 +140,23 @@ int sendUAFrame(int fd) {
 int receiveUAFrame(int fd){
     char uaFrame[S_FRAME_SIZE];
     char buf[255];
-    int flag = 0;
     int i = 0;
     int res;
 
-    while (STOP == FALSE) {       /* loop for input */
-        res = read(fd, buf, 1);   /* returns after 1 chars have been input */
-        if(res < 1) return -1;
-        buf[res] = 0;               /* so we can printf... */
+    State state = START;
+
+    while (state != STOP) {    
+        res = read(fd, buf, 1);  
+        if(res < 1) continue;
+        buf[res] = 0;               
 
         printf("%d\n", buf[0]);
+        changeState(&state, buf[0], 'u');
 
         uaFrame[i] = buf[0];
-        if (uaFrame[i] == FLAG) flag++;
         i++;
-
-        if (flag > 1) STOP=TRUE;
     }
     
-    /* if (setFrame[2] != SET_COMMAND) return 1; perguntar ao stor sobre verificação */
-
-    if (uaFrame[3] != (uaFrame[1] ^ uaFrame[2])) return -1;
-
+    //falta aqui condição de erro apra sair com -1
     return 0;    
 }

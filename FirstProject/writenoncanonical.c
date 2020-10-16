@@ -15,7 +15,6 @@
 int alarmFlag = 1;
 
 void alarmHandler(){
-    printf("HANDLERRR\n");
     alarmFlag = 0;   
 }
 
@@ -64,7 +63,7 @@ int main(int argc, char** argv) {
 
   tcflush(fd, TCIOFLUSH);
 
-  if ( tcsetattr(fd,TCSANOW,&newtio) == -1) {
+  if (tcsetattr(fd,TCSANOW,&newtio) == -1) {
     perror("tcsetattr");
     exit(-1);
   }
@@ -85,7 +84,6 @@ int main(int argc, char** argv) {
     alarm(3);
 
     while(alarmFlag){  
-      printf("BROOOOOO \n");
       if(receiveUAFrame(fd) == 0){ 
         alarm(0);
         alarmStop = TRUE;
