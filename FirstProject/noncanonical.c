@@ -7,20 +7,13 @@
 #include <termios.h>
 #include <stdlib.h>
 #include <string.h>
-#include <signal.h>
 #include "protocol.h"
-
-int alarmFlag = 1;
-
-void alarmHandler(){
-    alarmFlag = 0;   
-}
 
 int main(int argc, char** argv){
   int fd;
   struct termios oldtio, newtio;
 
-  if ( (argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0) && (strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
+  if ((argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0) && (strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
     printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
     exit(1);
   }
@@ -32,8 +25,11 @@ int main(int argc, char** argv){
   */
 
 
-  fd = open(argv[1], O_RDWR | O_NOCTTY );
-  if (fd < 0) {perror(argv[1]); exit(-1); }
+  fd = open(argv[1], O_RDWR | O_NOCTTY);
+  if (fd < 0) {
+    perror(argv[1]);
+    exit(-1); 
+  }
 
   if (tcgetattr(fd,&oldtio) == -1) { /* save current port settings */
     perror("tcgetattr");
@@ -51,51 +47,26 @@ int main(int argc, char** argv){
   newtio.c_cc[VTIME]    = 1;   /* inter-character timer unused */
   newtio.c_cc[VMIN]     = 0;   /* blocking read until 5 chars received */
 
-
-
-  /* 
-  VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 
-  leitura do(s) pr�ximo(s) caracter(es)
-  */
-
-
   tcflush(fd, TCIOFLUSH);
 
-  if ( tcsetattr(fd, TCSANOW, &newtio) == -1) {
+  if (tcsetattr(fd, TCSANOW, &newtio) == -1) {
     perror("tcsetattr");
     exit(-1);
   }
 
   printf("New termios structure set\n");
 
-  (void) signal(SIGALRM, alarmHandler); 
-
-  alarm(13);
-
-  while(alarmFlag){
-    if (receiveSetFrame(fd) == -1) {
-      printf("The SET Frame received is wrong!\n");
-      exit(-1);
-    }
-    else {
-      alarm(0);
-      break;
-    }
+  if (receiveSetFrame(fd) != -1) {
+    //sleep(20);
+    sendUAFrame(fd);
   }
-
-  if(alarmFlag == 0){
-    printf("The SET Frame was never received!\n");
-    exit(-1);
-  }
-  //sleep(5);
-
-  if(sendUAFrame(fd) == -1){
-    printf("Could not send UA FRAME!\n");
-    exit(-1);
-  }
-
+  
   sleep(1);
-  tcsetattr(fd, TCSANOW, &oldtio);
+  if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {
+    perror("tcsetattr");
+    exit(-1);
+  }
+
   close(fd);
   return 0;
 }

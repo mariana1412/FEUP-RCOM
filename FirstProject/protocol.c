@@ -1,6 +1,6 @@
 #include "protocol.h"
 
-volatile int FINISH = FALSE;
+//volatile int FINISH = FALSE;
 
 int changeState(State *state, unsigned char byte, char msg){ //mudar nome de msg -> S se SET, U se UA
     switch (*state)
@@ -13,9 +13,9 @@ int changeState(State *state, unsigned char byte, char msg){ //mudar nome de msg
         break;
     
     case FLAG_RCV:
-        if(byte == FLAG)
+        if(byte == FLAG){
             printf("state = flag_rcv -> flag!!! \n");
-        
+        }
         else if(byte == SEND_REC){
             printf("state = flag_rcv -> a_rec!!! \n");
             *state = A_RCV;
@@ -69,12 +69,10 @@ int changeState(State *state, unsigned char byte, char msg){ //mudar nome de msg
             *state = START;
         }
         break;
-
-    default:
-        break;
     }
-}
 
+    return 0;
+}
 
 
 int sendSetFrame(int fd){
@@ -82,40 +80,41 @@ int sendSetFrame(int fd){
     char setFrame[S_FRAME_SIZE];
 
     setFrame[0] = FLAG;
-    setFrame[1] = 0x00;
+    setFrame[1] = SEND_REC;
     setFrame[2] = SET_COMMAND;
     setFrame[3] = SEND_REC ^ SET_COMMAND;
     setFrame[4] = FLAG;
 
     res = write(fd, setFrame, S_FRAME_SIZE);
 
-    if(res == -1) return -1;
+    if(res == -1) {
+        printf("Could not send SET FRAME!\n");
+        return -1;
+    }
+
     printf("Set message sent! %d bytes written\n", res);
 
     return 0;
 }
 
 int receiveSetFrame(int fd){
-    char setFrame[S_FRAME_SIZE];
     char buf[255];
-    int i = 0;
-
     int res;
 
     State state = START;
 
-    while (state != STOP) {
-        res = read(fd, buf, 1);
-        if(res < 1) continue;
-        buf[res] = 0;            
+    while (state != STOP) {       
+        res = read(fd, buf, 1);   
+        if(res == 0) continue;
+        if(res < 0) return -1;
 
+        buf[res] = 0;               
         printf("%d\n", buf[0]);
-        changeState(&state, buf[0], 's');
 
-        setFrame[i] = buf[0];
-        i++;
+        changeState(&state, buf[0], 's');       
     }
-    //falta aqui condição de erro apra sair com -1
+    
+    //printf("The SET Frame received is wrong!\n"); return -1;
     return 0;
 }
 
@@ -131,32 +130,34 @@ int sendUAFrame(int fd) {
 
     res = write(fd, uaFrame, S_FRAME_SIZE);
 
-    if(res < 1) return -1;
+    if(res < 1) {
+        printf("Could not send UA FRAME!\n");
+        return -1;
+    }
+
     printf("UA message sent! %d bytes written\n", res);
 
     return 0;
 }
 
 int receiveUAFrame(int fd){
-    char uaFrame[S_FRAME_SIZE];
     char buf[255];
-    int i = 0;
     int res;
 
     State state = START;
 
-    while (state != STOP) {    
-        res = read(fd, buf, 1);  
-        if(res < 1) continue;
-        buf[res] = 0;               
+    while (state != STOP) {       /* loop for input */
+        res = read(fd, buf, 1);   /* returns after 1 chars have been input */
+        if(res == 0) continue;
+        if(res < 0) return -1;
+        buf[res] = 0;               /* so we can printf... */
 
         printf("%d\n", buf[0]);
-        changeState(&state, buf[0], 'u');
 
-        uaFrame[i] = buf[0];
-        i++;
+        changeState(&state, buf[0], 'u'); 
     }
-    
-    //falta aqui condição de erro apra sair com -1
+
+    //printf("The UA Frame received is wrong!\n"); return -1;
+
     return 0;    
 }
