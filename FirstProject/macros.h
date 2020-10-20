@@ -20,4 +20,7 @@ struct Frame_S {
     char bcc;
 } Frame_S;
 
+extern int alarmSender;
+extern int alarmReceiver;
+
 #endif /*MACROS_H*/

@@ -9,6 +9,10 @@
 #include <string.h>
 #include "protocol.h"
 
+void alarmHandler(){
+  alarmReceiver = 0;   
+}
+
 int main(int argc, char** argv){
   int fd;
   struct termios oldtio, newtio;
@@ -56,8 +60,29 @@ int main(int argc, char** argv){
 
   printf("New termios structure set\n");
 
-  if (receiveSetFrame(fd) != -1) {
-    //sleep(20);
+  (void) signal(SIGALRM, alarmHandler);
+  int alarmStop = TRUE;
+  int recSet;
+
+  alarm(13);
+
+  while(alarmReceiver) {
+    recSet = receiveSetFrame(fd);
+    if (recSet == 0) {
+      printf("Received Set Frame with success!\n");
+      alarm(0);
+      alarmStop = FALSE;
+      break;
+    } else if (recSet == -1) {
+      printf("Could not read from port!\n");
+      close(fd);
+      exit(-1);
+    }
+  }
+
+  if (alarmStop == TRUE) {
+    printf("Could not receive Set Frame!\n");
+  } else {
     sendUAFrame(fd);
   }
   

@@ -9,13 +9,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include <signal.h>
 #include "protocol.h"
 
-int alarmFlag = 1;
 
 void alarmHandler(){
-    alarmFlag = 0;   
+  alarmSender = 0;   
 }
 
 
@@ -71,7 +69,8 @@ int main(int argc, char** argv) {
   printf("New termios structure set\n");
 
   (void) signal(SIGALRM, alarmHandler); 
-  int alarmStop = FALSE;
+  int alarmStop = TRUE;
+  int recUA;
 
   for(int i = 0; i < 4; i++){
 
@@ -80,26 +79,33 @@ int main(int argc, char** argv) {
       exit(-1);
     }
 
-    alarmFlag = 1;
+    alarmSender = 1;
     alarm(3);
 
-    while(alarmFlag){  
-      if(receiveUAFrame(fd) == 0){ 
+    while(alarmSender){  
+      recUA = receiveUAFrame(fd);
+      if(recUA == 0){ 
         alarm(0);
-        alarmStop = TRUE;
+        alarmStop = FALSE;
         break;
+      } else if (recUA == -1) {
+        printf("Could not read from port!\n");
+        close(fd);
+        exit(-1);
       }
     }
 
-    if(alarmStop == TRUE){ 
+    if(alarmStop == FALSE){ 
       printf("Received UA Frame with success!\n");
       break;
+    } else if (i < 3) {
+      printf("Timeout number %d, trying again...\n", i+1);
     }
 
   }
 
-  if(alarmStop == FALSE){
-    printf("Error\n");
+  if(alarmStop == TRUE){
+    printf("Could not receive UA Frame!\n");
   }
 
   sleep(1);

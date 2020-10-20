@@ -1,6 +1,8 @@
 #include "protocol.h"
 
 //volatile int FINISH = FALSE;
+int alarmSender = 1;
+int alarmReceiver = 1;
 
 int changeState(State *state, unsigned char byte, char msg){ //mudar nome de msg -> S se SET, U se UA
     switch (*state)
@@ -8,7 +10,7 @@ int changeState(State *state, unsigned char byte, char msg){ //mudar nome de msg
     case START:
         if(byte == FLAG){
             *state = FLAG_RCV;
-            printf("state = flag -> flag!!! \n");
+            printf("state = start -> flag!!! \n");
         }
         break;
     
@@ -30,7 +32,7 @@ int changeState(State *state, unsigned char byte, char msg){ //mudar nome de msg
 
     case A_RCV:
         if((msg == 's' && (byte == SET_COMMAND)) || (msg == 'u' && (byte == UA_ANSWER))){
-            printf("state = a_rcv -> set ou ua!!! \n");
+            printf("state = a_rcv -> set or ua!!! \n");
             *state = C_RCV;
         }  
         else if(byte == FLAG){
@@ -103,18 +105,18 @@ int receiveSetFrame(int fd){
 
     State state = START;
 
-    while (state != STOP) {       
+    while (state != STOP && alarmReceiver == 1) {       
         res = read(fd, buf, 1);   
         if(res == 0) continue;
         if(res < 0) return -1;
-
-        buf[res] = 0;               
+              
         printf("%d\n", buf[0]);
 
-        changeState(&state, buf[0], 's');       
+        changeState(&state, buf[0], 's');     
     }
     
-    //printf("The SET Frame received is wrong!\n"); return -1;
+    if (alarmReceiver == 0) return 1;
+
     return 0;
 }
 
@@ -146,18 +148,17 @@ int receiveUAFrame(int fd){
 
     State state = START;
 
-    while (state != STOP) {       /* loop for input */
+    while (state != STOP && alarmSender == 1) {       /* loop for input */
         res = read(fd, buf, 1);   /* returns after 1 chars have been input */
         if(res == 0) continue;
         if(res < 0) return -1;
-        buf[res] = 0;               /* so we can printf... */
 
         printf("%d\n", buf[0]);
 
         changeState(&state, buf[0], 'u'); 
     }
 
-    //printf("The UA Frame received is wrong!\n"); return -1;
+    if (alarmSender == 0) return 1;
 
     return 0;    
 }

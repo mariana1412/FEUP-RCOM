@@ -2,6 +2,7 @@
 #define PROTOCOL_H
 
 #include "macros.h"
+#include <signal.h>
 
 typedef enum State{START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, STOP} State;
 
