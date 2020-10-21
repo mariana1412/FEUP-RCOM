@@ -60,31 +60,22 @@ int main(int argc, char** argv){
 
   printf("New termios structure set\n");
 
-  (void) signal(SIGALRM, alarmHandler);
-  int alarmStop = TRUE;
   int recSet;
 
-  alarm(13);
-
-  while(alarmReceiver) {
-    recSet = receiveSetFrame(fd);
-    if (recSet == 0) {
-      printf("Received Set Frame with success!\n");
-      alarm(0);
-      alarmStop = FALSE;
-      break;
-    } else if (recSet == -1) {
-      printf("Could not read from port!\n");
-      close(fd);
-      exit(-1);
-    }
+  recSet = receiveSetFrame(fd);
+  if (recSet == 0) {
+    printf("Received Set Frame with success!\n");
+  } else if (recSet == -1) {
+    printf("Could not read from port!\n");
+    close(fd);
+    exit(-1);
   }
 
-  if (alarmStop == TRUE) {
-    printf("Could not receive Set Frame!\n");
-  } else {
-    sendUAFrame(fd);
-  }
+  sendUAFrame(fd);
+
+  char* data;
+
+  receiveInfoFrame(fd, 0, data);
   
   sleep(1);
   if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {

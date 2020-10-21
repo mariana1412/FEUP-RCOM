@@ -2,3 +2,7 @@
 .vscode/c_cpp_properties.json
 FirstProject/receiver
 FirstProject/sender
+.idea/feuprcom.iml
+.idea/misc.xml
+.idea/modules.xml
+.idea/vcs.xml
