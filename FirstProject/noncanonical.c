@@ -76,7 +76,8 @@ int main(int argc, char** argv){
   char* data;
 
   receiveInfoFrame(fd, 0, data);
-  
+  printf("%s\n", data);
+
   sleep(1);
   if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {
     perror("tcsetattr");

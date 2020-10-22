@@ -3,6 +3,7 @@
 
 #include "macros.h"
 #include <signal.h>
+#include <stdio.h>
 
 typedef enum State{START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, DATA, C2_RCV, BCC2_OK, STOP} State;
 

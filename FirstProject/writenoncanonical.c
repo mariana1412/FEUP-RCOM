@@ -107,7 +107,7 @@ int main(int argc, char** argv) {
   if(alarmStop == TRUE){
     printf("Could not receive UA Frame!\n");
   } else {
-    char* data = "my";
+    char* data = "my name is";
     sendInfoFrame(fd, 0, data);
   }
 

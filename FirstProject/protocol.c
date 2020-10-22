@@ -149,7 +149,8 @@ int changeStateInfo(State *state, int ns, unsigned char byte) {
             printf("state = data -> c2_rcv!!! \n");
             *state = C2_RCV;
         } else if (byte == FLAG) {
-            *state = START;
+            printf("state = data -> flag!!! \n");
+            *state = FLAG;
         } else {
             printf("received data byte!!! \n");
             bcc2Check = bcc2Check ^ byte;
@@ -159,7 +160,11 @@ int changeStateInfo(State *state, int ns, unsigned char byte) {
         if (byte == bcc2Check) {
             printf("state = c2_rcv -> bcc2_ok!!! \n");
             *state = BCC2_OK;
-        } else {
+        } else if (byte == FLAG) {
+            printf("state = c2_rcv -> flag!!! \n");
+            *state = FLAG;
+        }
+        else {
             printf("state = c2_rcv -> else!!! \n");
             *state = START;
         }
@@ -175,7 +180,7 @@ int changeStateInfo(State *state, int ns, unsigned char byte) {
         }
         break;
     }
-
+    
     return 0;
 }
 
@@ -266,7 +271,7 @@ int receiveUAFrame(int fd){
 int sendInfoFrame(int fd, int ns, char* info) {
     int res;
     char* infoFrame;
-    int infoLength = sizeof(info)/sizeof(*info);
+    int infoLength = strlen(info);
     char bcc2 = 0x0;
 
     infoFrame[0] = FLAG;
@@ -276,15 +281,15 @@ int sendInfoFrame(int fd, int ns, char* info) {
     infoFrame[4] = 0x02;
 
     for (int i = 0; i < infoLength; i++) {
-        infoFrame[i +5] = info[i];
-        bcc2 = bcc2 ^ infoFrame[i +5];
+        infoFrame[i + 5] = info[i];
+        bcc2 = bcc2 ^ infoFrame[i + 5];
     }
 
-    infoFrame[infoLength +4] = 0x03;
-    infoFrame[infoLength +5] = bcc2;
-    infoFrame[infoLength +6] = FLAG;
+    infoFrame[infoLength + 5] = 0x03;
+    infoFrame[infoLength + 6] = bcc2;
+    infoFrame[infoLength + 7] = FLAG;
 
-    res = write(fd, infoFrame, sizeof(infoFrame));
+    res = write(fd, infoFrame, 8+infoLength);
 
     if(res < 1) {
         printf("Could not send Information FRAME!\n");
@@ -303,20 +308,22 @@ int receiveInfoFrame (int fd, int ns, char* info) {
 
     State state = START;
 
+
     while (state != STOP) {       /* loop for input */
         res = read(fd, buf, 1);   /* returns after 1 chars have been input */
+
         if(res == 0) continue;
         if(res < 0) return -1;
 
         printf("%c\n", buf[0]);
+        fflush(stdin);
 
         if (state == DATA) {
             info[i] = buf[0];
             i++;
         }
-
         changeStateInfo(&state, ns, buf[0]); 
     }
-
+    
     return 0;    
 }
