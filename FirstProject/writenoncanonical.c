@@ -108,15 +108,62 @@ int main(int argc, char** argv) {
     printf("Could not receive UA Frame!\n");
   } else {
     char* data = "my name is";
-    sendInfoFrame(fd, 0, data);
+    char* control = makeControlPacket(2, 354, "chef");
+    int ns = 0;
+    int nr;
+    int recRR;
+
+    for(int j = 0; j < 4; j++) {
+      
+      if(sendInfoFrame(fd, ns, control) == -1){
+        close(fd);
+        exit(-1);
+      }
+
+      alarmSender = 1;
+      alarm(3);
+
+      while(alarmSender){
+        recRR = receiveRRFrame(fd, &nr);
+        if(recRR == 0){ 
+          alarm(0);
+          alarmStop = FALSE;
+          break;
+        } else if (recRR == -1) {
+          printf("Could not read from port!\n");
+          close(fd);
+          exit(-1);
+        }
+      }
+
+      if(alarmStop == FALSE){ 
+        printf("Received UA Frame with success!\n");
+        break;
+      } else if (j < 3) {
+        printf("Timeout number %d, trying again...\n", j+1);
+      }
+    }
+
+    if (alarmStop == TRUE) {
+      printf("Could not receive UA Frame!\n");
+    } else {
+      sendInfoFrame(fd, 0, data);
+
+      
+    }
   }
 
-  sleep(1);
-  if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {
-    perror("tcsetattr");
-    exit(-1);
-  }
-
-  close(fd);
+  closePort()
   return 0;
+}
+
+int closePort(int fd, struct termios oldtio){
+    sleep(1);
+
+    if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {
+      perror("tcsetattr");
+      exit(-1);
+    }
+
+    close(fd);
 }

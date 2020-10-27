@@ -5,7 +5,10 @@ int alarmSender = 1;
 int alarmReceiver = 1;
 char bcc2Check = 0x0;
 
-int changeStateSETUA(State *state, unsigned char byte, char command){ //mudar nome de msg -> S se SET, U se UA
+int changeStateS(State *state, unsigned char byte, ControlCommand command){
+    int nr = -1;
+    int isCorrect;
+
     switch (*state)
     {
     case START:
@@ -32,7 +35,27 @@ int changeStateSETUA(State *state, unsigned char byte, char command){ //mudar no
         break;
 
     case A_RCV:
-        if((command == 's' && (byte == SET_COMMAND)) || (command == 'u' && (byte == UA_ANSWER))){
+        isCorrect = FALSE;
+
+        switch (command) {
+            case SET:
+                if (byte == SET_COMMAND) isCorrect = TRUE;
+                break;
+            case UA:
+                if(byte == UA_ANSWER) isCorrect = TRUE;
+                break;
+            case RR:
+                if (byte == 0x85) {
+                    isCorrect = TRUE;
+                    nr = 1;
+                } else if (byte == 0x05) {
+                    isCorrect = TRUE;
+                    nr = 0;
+                }
+                break;
+        }
+
+        if(isCorrect){
             printf("state = a_rcv -> set or ua!!! \n");
             *state = C_RCV;
         }  
@@ -48,10 +71,26 @@ int changeStateSETUA(State *state, unsigned char byte, char command){ //mudar no
         break;
     
     case C_RCV:
-        if((command == 's' && (byte == (SEND_REC ^ SET_COMMAND))) || (command == 'u' && (byte == (SEND_REC ^ UA_ANSWER)))){
+        
+        isCorrect = FALSE;
+
+        switch (command) {
+            case SET:
+                if (byte == (SEND_REC ^ SET_COMMAND)) isCorrect = TRUE;
+                break;
+            case UA:
+                if(byte == (SEND_REC ^ UA_ANSWER)) isCorrect = TRUE;
+                break;
+            case RR:
+                
+                break;
+        }
+
+        if(isCorrect){
             printf("state = c_rcv -> ^ !!! \n");
             *state = BCC_OK;
         }  
+        
         else if(byte == FLAG){
             printf("state = c_rcv -> flag!!! \n");
             *state = FLAG_RCV;
@@ -74,7 +113,7 @@ int changeStateSETUA(State *state, unsigned char byte, char command){ //mudar no
         break;
     }
 
-    return 0;
+    return nr;
 }
 
 int changeStateInfo(State *state, int ns, unsigned char byte) {
@@ -219,7 +258,7 @@ int receiveSetFrame(int fd){
               
         printf("%d\n", buf[0]);
 
-        changeStateSETUA(&state, buf[0], 's');     
+        changeStateS(&state, buf[0], SET);     
     }
 
     return 0;
@@ -260,7 +299,53 @@ int receiveUAFrame(int fd){
 
         printf("%d\n", buf[0]);
 
-        changeStateSETUA(&state, buf[0], 'u'); 
+        changeStateS(&state, buf[0], UA); 
+    }
+
+    if (alarmSender == 0) return 1;
+
+    return 0;    
+}
+
+int sendRRFrame(int fd, int nr) {
+    int res;
+    char rrFrame[S_FRAME_SIZE];
+
+    rrFrame[0] = FLAG;
+    rrFrame[1] = SEND_REC;
+    rrFrame[2] = RR(nr);
+    rrFrame[3] = SEND_REC ^ RR(nr);
+    rrFrame[4] = FLAG;
+
+    res = write(fd, rrFrame, S_FRAME_SIZE);
+
+    if(res < 1) {
+        printf("Could not send RR FRAME!\n");
+        return -1;
+    }
+
+    printf("RR message sent! %d bytes written\n", res);
+
+    return 0;
+}
+
+int receiveRRFrame (int fd, int *nr) { 
+    char buf[255];
+    int res;
+    int r;
+
+    State state = START;
+
+    while (state != STOP && alarmSender == 1) {       /* loop for input */
+        res = read(fd, buf, 1);   /* returns after 1 chars have been input */
+        if(res == 0) continue;
+        if(res < 0) return -1;
+
+        printf("%d\n", buf[0]);
+
+        if(r = changeStateS(&state, buf[0], RR) != -1){
+            *nr = r;
+        }
     }
 
     if (alarmSender == 0) return 1;
@@ -326,4 +411,27 @@ int receiveInfoFrame (int fd, int ns, char* info) {
     }
     
     return 0;    
+}
+
+char* makeControlPacket(int control, int fileSize, char* fileName) {
+    char* packet;
+    int index = 0;
+    
+    packet[index++] = control;
+
+    packet[index++] = FILESIZE;
+    packet[index++] = sizeof(fileSize);
+
+    for (int i = 0; i < packet[2]; i++) {
+        packet[index++] = ((unsigned char*) fileSize)[i];
+    }
+    
+    packet[index++] = FILENAME;
+    packet[index++] = sizeof(fileName)/sizeof(char); //confirmar se é ou não char*
+    
+    for (int j = 0; j < packet[index -1]; j++) {
+        packet[index++] = fileName[j];
+    }
+    
+    return packet;
 }

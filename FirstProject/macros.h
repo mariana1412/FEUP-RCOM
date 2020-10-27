@@ -13,6 +13,13 @@
 #define UA_ANSWER       0x07
 #define S_FRAME_SIZE    5
 
+#define RR(R)           R << 7 + 0x05  
+#define REJ(R)          R << 7 + 0x01  
+
+#define FILESIZE        0
+#define FILENAME        1
+ 
+
 struct Frame_S {
     char flag;
     char address;
