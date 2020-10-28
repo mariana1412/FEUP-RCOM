@@ -12,4 +12,4 @@
 int initPort(int portInt, int vtime, int vmin, int status);
 int closePort(int fd, int status);
 
-#endif /*FILES_H*/
+#endif /*PORT_H*/

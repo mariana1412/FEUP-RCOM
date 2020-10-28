@@ -7,6 +7,11 @@
 #define FALSE           0
 #define TRUE            1
 
+#define COM0            0    
+#define COM1            1
+#define COM10           10
+#define COM11           11
+
 #define SENDER          0
 #define RECEIVER        1
 

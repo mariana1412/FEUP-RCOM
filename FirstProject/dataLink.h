@@ -4,7 +4,10 @@
 #include "macros.h"
 #include "port.h"
 
-int llopen(int fd, int status);
+void alarmHandler();
+
+int aux(int fd);
+int llopen(int port, int status);
 
 int llwrite(int fd, char* buffer, int length);
 

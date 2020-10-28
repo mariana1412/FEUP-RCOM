@@ -4,9 +4,11 @@ static struct termios oldtioReceiver, oldtioSender;
 
 int initPort(int portInt, int vtime, int vmin, int status){
 
-    char *port = ;
+    char *port;
     struct termios newtio;
 
+    sprintf(port, "/dev/ttyS%d", portInt);
+    
     int fd = open(port, O_RDWR|O_NOCTTY);
 
     if (fd < 0) {
@@ -48,8 +50,6 @@ int initPort(int portInt, int vtime, int vmin, int status){
     return fd;
 }
 
-
-
 int closePort(int fd, int status){
     sleep(1);
 
@@ -59,5 +59,6 @@ int closePort(int fd, int status){
     }
 
     close(fd);
+    printf("Closed with success!\n");
     return 0;
 }
