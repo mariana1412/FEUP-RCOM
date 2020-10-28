@@ -6,6 +6,10 @@
 #define _POSIX_SOURCE   1 /* POSIX compliant source */
 #define FALSE           0
 #define TRUE            1
+
+#define SENDER          0
+#define RECEIVER        1
+
 #define FLAG            0x7E
 #define SEND_REC        0X03 //commands from sender, answers from receiver
 #define REC_SEND        0X01 //commands from receiver, answers from sender
@@ -18,7 +22,11 @@
 
 #define FILESIZE        0
 #define FILENAME        1
- 
+
+struct AppLayer {
+    int fd;
+    int status;
+} AppLayer;
 
 struct Frame_S {
     char flag;

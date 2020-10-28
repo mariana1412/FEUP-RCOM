@@ -27,6 +27,7 @@ int main(int argc, char** argv) {
     exit(1);
   }
 
+
   /*
     Open serial port device for reading and writing and not as controlling tty
     because we don't want to get killed if linenoise sends CTRL-C.
@@ -153,17 +154,7 @@ int main(int argc, char** argv) {
     }
   }
 
-  closePort()
+  closePort(fd, oldtio);
   return 0;
 }
 
-int closePort(int fd, struct termios oldtio){
-    sleep(1);
-
-    if (tcsetattr(fd, TCSANOW, &oldtio) == -1) {
-      perror("tcsetattr");
-      exit(-1);
-    }
-
-    close(fd);
-}
