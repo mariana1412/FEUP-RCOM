@@ -4,13 +4,19 @@
 #include "macros.h"
 #include <signal.h>
 #include <stdio.h>
+#include <string.h>
 
 typedef enum State{START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, DATA, C2_RCV, BCC2_OK, STOP} State;
 typedef enum ControlCommand{SET, DISC, UA, RR, REJ} ControlCommand;
 
-int changeStateS(State *state, unsigned char byte, char command);
+extern int alarmSender;
+
+
+int changeStateS(State *state, unsigned char byte, ControlCommand command);
 
 int changeStateInfo(State *state, int ns, unsigned char byte);
+
+int sendOpenCloseFrame(int fd, ControlCommand command, int address);
 
 int sendSetFrame(int fd);
 
@@ -23,7 +29,6 @@ int receiveUAFrame(int fd);
 int sendRRFrame(int fd, int nr);
 
 int receiveRRFrame(int fd, int *nr);
-
 
 int sendInfoFrame(int fd, int ns, char* info);
 

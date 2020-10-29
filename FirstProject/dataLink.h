@@ -1,12 +1,15 @@
 #ifndef DATALINK_H
 #define DATALINK_H
 
-#include "macros.h"
+#pragma once
+
+#include "protocol.h"
 #include "port.h"
 
 void alarmHandler();
 
-int aux(int fd);
+int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive);
+
 int llopen(int port, int status);
 
 int llwrite(int fd, char* buffer, int length);

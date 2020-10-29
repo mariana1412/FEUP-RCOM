@@ -1,4 +1,4 @@
-AUX = protocol.c dataLink.c
+AUX = protocol.c dataLink.c port.c
 
 SENDER = writenoncanonical.c
 

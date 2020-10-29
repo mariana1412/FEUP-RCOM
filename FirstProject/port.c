@@ -9,7 +9,7 @@ int initPort(int portInt, int vtime, int vmin, int status){
 
     sprintf(port, "/dev/ttyS%d", portInt);
     
-    int fd = open(port, O_RDWR|O_NOCTTY);
+    int fd = open(port, O_RDWR | O_NOCTTY);
 
     if (fd < 0) {
         perror(port); 
@@ -30,8 +30,8 @@ int initPort(int portInt, int vtime, int vmin, int status){
     /* set input mode (non-canonical, no echo,...) */
     newtio.c_lflag = 0;
 
-    newtio.c_cc[VTIME]    = vtime;   /* inter-character timer unused */
-    newtio.c_cc[VMIN]     = vmin;   /* blocking read until 5 chars received */
+    newtio.c_cc[VTIME]    = vtime;
+    newtio.c_cc[VMIN]     = vmin;
 
     /* 
     VTIME e VMIN devem ser alterados de forma a proteger com um temporizador a 

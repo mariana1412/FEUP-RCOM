@@ -18,10 +18,10 @@ int main(int argc, char** argv){
     }
 
     int port;
-    if(strcmp("/dev/ttyS10", argv[1] == 0) port = COM10;
-    if(strcmp("/dev/ttyS11", argv[1] == 0) port = COM11;
-    if(strcmp("/dev/ttyS0", argv[1] == 0) port = COM0;
-    if(strcmp("/dev/ttyS1", argv[1] == 0) port = COM1;
+    if(strcmp("/dev/ttyS10", argv[1]) == 0) port = COM10;
+    if(strcmp("/dev/ttyS11", argv[1]) == 0) port = COM11;
+    if(strcmp("/dev/ttyS0", argv[1]) == 0) port = COM0;
+    if(strcmp("/dev/ttyS1", argv[1]) == 0) port = COM1;
 
     int fd = llopen(port, RECEIVER);
     if(fd < 0){

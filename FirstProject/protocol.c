@@ -2,7 +2,6 @@
 
 //volatile int FINISH = FALSE;
 int alarmSender = 1;
-int alarmReceiver = 1;
 char bcc2Check = 0x0;
 
 int changeStateS(State *state, unsigned char byte, ControlCommand command){
@@ -42,7 +41,7 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command){
                 if (byte == SET_COMMAND) isCorrect = TRUE;
                 break;
             case UA:
-                if(byte == UA_ANSWER) isCorrect = TRUE;
+                if(byte == UA_COMMAND) isCorrect = TRUE;
                 break;
             case RR:
                 if (byte == 0x85) {
@@ -79,7 +78,7 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command){
                 if (byte == (SEND_REC ^ SET_COMMAND)) isCorrect = TRUE;
                 break;
             case UA:
-                if(byte == (SEND_REC ^ UA_ANSWER)) isCorrect = TRUE;
+                if(byte == (SEND_REC ^ UA_COMMAND)) isCorrect = TRUE;
                 break;
             case RR:
                 
@@ -223,6 +222,38 @@ int changeStateInfo(State *state, int ns, unsigned char byte) {
     return 0;
 }
 
+int sendOpenCloseFrame(int fd, ControlCommand command, int address) {
+    int res;
+    char frame[S_FRAME_SIZE];
+
+    frame[0] = FLAG;
+    frame[1] = address;
+    frame[4] = FLAG;
+
+    switch(command) {
+        case SET:
+            frame[2] = SET_COMMAND;
+            frame[3] = address ^ SET_COMMAND;
+            break;
+        case DISC:
+            frame[2] = DISC_COMMAND;
+            frame[3] = address ^ DISC_COMMAND;
+            break;
+        case UA:
+            frame[2] = UA_COMMAND;
+            frame[3] = address ^ UA_COMMAND;
+            break;
+        default:
+            break;
+    }
+
+    res = write(fd, frame, S_FRAME_SIZE);
+
+    if (res == -1) return -1;
+    
+    return 0;
+    }
+
 int sendSetFrame(int fd){
     int res;
     char setFrame[S_FRAME_SIZE];
@@ -270,8 +301,8 @@ int sendUAFrame(int fd) {
 
     uaFrame[0] = FLAG;
     uaFrame[1] = SEND_REC;
-    uaFrame[2] = UA_ANSWER;
-    uaFrame[3] = SEND_REC ^ UA_ANSWER;
+    uaFrame[2] = UA_COMMAND;
+    uaFrame[3] = SEND_REC ^ UA_COMMAND;
     uaFrame[4] = FLAG;
 
     res = write(fd, uaFrame, S_FRAME_SIZE);
@@ -292,10 +323,10 @@ int receiveUAFrame(int fd){
 
     State state = START;
 
-    while (state != STOP && alarmSender == 1) {       /* loop for input */
-        res = read(fd, buf, 1);   /* returns after 1 chars have been input */
+    while (state != STOP && alarmSender == 1) {
+        res = read(fd, buf, 1);
         if(res == 0) continue;
-        if(res < 0) return -1;
+        if(res < 0) return res;
 
         printf("%d\n", buf[0]);
 
