@@ -1,50 +1,7 @@
 #include "dataLink.h"
 
-void alarmHandler(){
-    alarmSender = 0; 
-    return;  
-}
-
-int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive) { //MUDAR NOME DISTO
-    int rec;
-
-    for(int i = 0; i < 4; i++){
-        if(sendOpenCloseFrame(fd, SET, SEND_REC) == -1){
-            printf("Could not send SET Frame!\n");
-            return -1;
-        } else {
-            printf("Sent SET Frame!\n");
-        }
-
-        alarmSender = 1;
-        alarm(3);
-
-        while(alarmSender){
-            rec = receiveUAFrame(fd);
-            if(rec == 0){ 
-                alarm(0);
-                break;  
-            } else if (rec < 0) {
-                printf("Could not read from port! Code: %d\n", rec);
-                return -1;
-            }
-        }
-
-        if(alarmSender){
-            printf("Received UA Frame with success!\n");
-            return 0;
-        }
-        else if (i < 3) {
-            printf("Timeout number %d, trying again...\n", i+1);
-        }
-    }
-    return -1;
-}
-
 
 int llopen(int port, int status){
-    // (void) signal(SIGALRM, alarmHandler); //confirmar se isto fica aqui
-
     struct sigaction newAction, oldAction;
 
     newAction.sa_handler = alarmHandler;
@@ -52,7 +9,6 @@ int llopen(int port, int status){
     newAction.sa_flags = 0;
 
     sigaction(SIGALRM, &newAction, &oldAction);
-    // sigaction(SIGALRM, &newAction, NULL);
 
     int fd = initPort(port, 0, 0, status);
 
@@ -67,11 +23,10 @@ int llopen(int port, int status){
         }
     }
     else if (status == RECEIVER){
-        int recSet = receiveSetFrame(fd);
+        int recSet = receiveOpenCloseFrame(fd, SET, SEND_REC);
 
         if (recSet == 0) {
             printf("Received SET Frame with success!\n");
-
             res = sendOpenCloseFrame(fd, UA, SEND_REC);
             if (res == 0) {
                 printf("Sent UA Frame!\n");
@@ -101,14 +56,53 @@ int llread(int fd, char* buffer){
 }
 
 int llclose(int fd, int status){
+    struct sigaction newAction, oldAction;
+
+    newAction.sa_handler = alarmHandler;
+    sigemptyset(&newAction.sa_mask);
+    newAction.sa_flags = 0;
+
+    sigaction(SIGALRM, &newAction, &oldAction);
+
+    int res;
+
     if (status == SENDER){
-        //send disc, receive disc, send ua 
+        res = SandWOpenClose(fd, DISC, DISC);
+        if(res == 0) {
+            printf("Received DISC Frame with success!\n");
+            sleep(5);
+            res = sendOpenCloseFrame(fd, UA, SEND_REC);
+            if (res == 0) {
+                printf("Sent UA Frame!\n");
+            } else {
+                printf("Could not send UA Frame!\n");
+                return -1;
+            }
+        }
+        else if(res == -1){
+            printf("Could not receive DISC Frame!\n");
+            return -1;
+        }
     }
     else if (status == RECEIVER){
-        //send disc, receive ua
+        int recDISC = receiveOpenCloseFrame(fd, DISC, SEND_REC);
+
+        if (recDISC == 0) {
+            printf("Received DISC Frame with success!\n");
+            sleep(4);
+            res = SandWOpenClose(fd, DISC, UA);
+            if (res == 0) {
+                printf("Received UA Frame with success!\n");
+            } else if (res == -1) {
+            printf("Could not receive UA Frame!\n");
+            return -1;
+            }
+        }
+        else if (recDISC == -1) {
+            printf("Could not read from port!\n");
+            return -1;
+        }
     }
-    else
-        return -1;
     
     return closePort(fd, status);
 }

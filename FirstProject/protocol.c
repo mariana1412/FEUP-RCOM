@@ -1,10 +1,49 @@
 #include "protocol.h"
 
-//volatile int FINISH = FALSE;
 int alarmSender = 1;
 char bcc2Check = 0x0;
 
-int changeStateS(State *state, unsigned char byte, ControlCommand command){
+void alarmHandler(){
+    alarmSender = 0; 
+    return;  
+}
+
+int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive) {
+    int rec;
+
+    for(int i = 0; i < 4; i++){
+        if(sendOpenCloseFrame(fd, send, SEND_REC) == -1){
+            printf("Could not send Frame!\n");
+            return -1;
+        } else {
+            printf("Sent Frame!\n");
+        }
+
+        alarmSender = 1;
+        alarm(3);
+
+        while(alarmSender){
+            rec = receiveOpenCloseFrame(fd, receive, SEND_REC);
+            if(rec == 0){ 
+                alarm(0);
+                break;  
+            } else if (rec < 0) {
+                printf("Could not read from port! Code: %d\n", rec);
+                return -1;
+            }
+        }
+
+        if(alarmSender){
+            return 0;
+        }
+        else if (i < 3) {
+            printf("Timeout number %d, trying again...\n", i+1);
+        }
+    }
+    return -1;
+}
+
+int changeStateS(State *state, unsigned char byte, ControlCommand command, unsigned char address){
     int nr = -1;
     int isCorrect;
 
@@ -21,7 +60,7 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command){
         if(byte == FLAG){
             printf("state = flag_rcv -> flag!!! \n");
         }
-        else if(byte == SEND_REC){
+        else if(byte == address){
             printf("state = flag_rcv -> a_rec!!! \n");
             *state = A_RCV;
         }
@@ -40,6 +79,9 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command){
             case SET:
                 if (byte == SET_COMMAND) isCorrect = TRUE;
                 break;
+            case DISC:
+                if (byte == DISC_COMMAND) isCorrect = TRUE;
+                break;
             case UA:
                 if(byte == UA_COMMAND) isCorrect = TRUE;
                 break;
@@ -55,7 +97,7 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command){
         }
 
         if(isCorrect){
-            printf("state = a_rcv -> set or ua!!! \n");
+            printf("state = a_rcv -> set, disc or ua!!! \n");
             *state = C_RCV;
         }  
         else if(byte == FLAG){
@@ -75,13 +117,15 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command){
 
         switch (command) {
             case SET:
-                if (byte == (SEND_REC ^ SET_COMMAND)) isCorrect = TRUE;
+                if (byte == (address ^ SET_COMMAND)) isCorrect = TRUE;
+                break;
+            case DISC:
+                if (byte == (address ^ DISC_COMMAND)) isCorrect = TRUE;
                 break;
             case UA:
-                if(byte == (SEND_REC ^ UA_COMMAND)) isCorrect = TRUE;
+                if(byte == (address ^ UA_COMMAND)) isCorrect = TRUE;
                 break;
             case RR:
-                
                 break;
         }
 
@@ -254,135 +298,110 @@ int sendOpenCloseFrame(int fd, ControlCommand command, int address) {
     return 0;
     }
 
-int sendSetFrame(int fd){
-    int res;
-    char setFrame[S_FRAME_SIZE];
-
-    setFrame[0] = FLAG;
-    setFrame[1] = SEND_REC;
-    setFrame[2] = SET_COMMAND;
-    setFrame[3] = SEND_REC ^ SET_COMMAND;
-    setFrame[4] = FLAG;
-
-    res = write(fd, setFrame, S_FRAME_SIZE);
-
-    if(res == -1) {
-        printf("Could not send SET FRAME!\n");
-        return -1;
-    }
-
-    printf("Set message sent! %d bytes written\n", res);
-
-    return 0;
-}
-
-int receiveSetFrame(int fd){
+int receiveOpenCloseFrame(int fd, ControlCommand command, int address) {
     char buf[255];
     int res;
 
     State state = START;
 
-    while (state != STOP) {       
+    while (state != STOP && alarmSender == 1) {       
         res = read(fd, buf, 1);   
         if(res == 0) continue;
         if(res < 0) return -1;
               
         printf("%d\n", buf[0]);
 
-        changeStateS(&state, buf[0], SET);     
+        changeStateS(&state, buf[0], command, address);     
     }
 
     return 0;
 }
 
-int sendUAFrame(int fd) {
-    int res;
-    char uaFrame[S_FRAME_SIZE];
+// int receiveSetFrame(int fd){
+//     char buf[255];
+//     int res;
 
-    uaFrame[0] = FLAG;
-    uaFrame[1] = SEND_REC;
-    uaFrame[2] = UA_COMMAND;
-    uaFrame[3] = SEND_REC ^ UA_COMMAND;
-    uaFrame[4] = FLAG;
+//     State state = START;
 
-    res = write(fd, uaFrame, S_FRAME_SIZE);
+//     while (state != STOP) {       
+//         res = read(fd, buf, 1);   
+//         if(res == 0) continue;
+//         if(res < 0) return -1;
+              
+//         printf("%d\n", buf[0]);
 
-    if(res < 1) {
-        printf("Could not send UA FRAME!\n");
-        return -1;
-    }
+//         changeStateS(&state, buf[0], SET);     
+//     }
 
-    printf("UA message sent! %d bytes written\n", res);
+//     return 0;
+// }
 
-    return 0;
-}
+// int receiveUAFrame(int fd){
+//     char buf[255];
+//     int res;
 
-int receiveUAFrame(int fd){
-    char buf[255];
-    int res;
+//     State state = START;
 
-    State state = START;
+//     while (state != STOP && alarmSender == 1) {
+//         res = read(fd, buf, 1);
+//         if(res == 0) continue;
+//         if(res < 0) return res;
 
-    while (state != STOP && alarmSender == 1) {
-        res = read(fd, buf, 1);
-        if(res == 0) continue;
-        if(res < 0) return res;
+//         printf("%d\n", buf[0]);
 
-        printf("%d\n", buf[0]);
+//         changeStateS(&state, buf[0], UA); 
+//     }
 
-        changeStateS(&state, buf[0], UA); 
-    }
+//     if (alarmSender == 0) return 1;
 
-    if (alarmSender == 0) return 1;
+//     return 0;    
+// }
 
-    return 0;    
-}
+// int sendRRFrame(int fd, int nr) {
+//     int res;
+//     char rrFrame[S_FRAME_SIZE];
 
-int sendRRFrame(int fd, int nr) {
-    int res;
-    char rrFrame[S_FRAME_SIZE];
+//     rrFrame[0] = FLAG;
+//     rrFrame[1] = SEND_REC;
+//     rrFrame[2] = RR(nr);
+//     rrFrame[3] = SEND_REC ^ RR(nr);
+//     rrFrame[4] = FLAG;
 
-    rrFrame[0] = FLAG;
-    rrFrame[1] = SEND_REC;
-    rrFrame[2] = RR(nr);
-    rrFrame[3] = SEND_REC ^ RR(nr);
-    rrFrame[4] = FLAG;
+//     res = write(fd, rrFrame, S_FRAME_SIZE);
 
-    res = write(fd, rrFrame, S_FRAME_SIZE);
+//     if(res < 1) {
+//         printf("Could not send RR FRAME!\n");
+//         return -1;
+//     }
 
-    if(res < 1) {
-        printf("Could not send RR FRAME!\n");
-        return -1;
-    }
+//     printf("RR message sent! %d bytes written\n", res);
 
-    printf("RR message sent! %d bytes written\n", res);
+//     return 0;
+// }
 
-    return 0;
-}
+// int receiveRRFrame (int fd, int *nr) { 
+//     char buf[255];
+//     int res;
+//     int r;
 
-int receiveRRFrame (int fd, int *nr) { 
-    char buf[255];
-    int res;
-    int r;
+//     State state = START;
 
-    State state = START;
+//     while (state != STOP && alarmSender == 1) {       /* loop for input */
+//         res = read(fd, buf, 1);   /* returns after 1 chars have been input */
+//         if(res == 0) continue;
+//         if(res < 0) return -1;
 
-    while (state != STOP && alarmSender == 1) {       /* loop for input */
-        res = read(fd, buf, 1);   /* returns after 1 chars have been input */
-        if(res == 0) continue;
-        if(res < 0) return -1;
+//         printf("%d\n", buf[0]);
 
-        printf("%d\n", buf[0]);
+//         if(r = changeStateS(&state, buf[0], RR) != -1){
+//             *nr = r;
+//         }
+//     }
 
-        if(r = changeStateS(&state, buf[0], RR) != -1){
-            *nr = r;
-        }
-    }
+//     if (alarmSender == 0) return 1;
 
-    if (alarmSender == 0) return 1;
-
-    return 0;    
-}
+//     return 0;    
+// }
 
 int sendInfoFrame(int fd, int ns, char* info) {
     int res;

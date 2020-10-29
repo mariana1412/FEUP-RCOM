@@ -1,6 +1,7 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
+
 #include "macros.h"
 #include <signal.h>
 #include <stdio.h>
@@ -11,20 +12,17 @@ typedef enum ControlCommand{SET, DISC, UA, RR, REJ} ControlCommand;
 
 extern int alarmSender;
 
+void alarmHandler();
 
-int changeStateS(State *state, unsigned char byte, ControlCommand command);
+int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive);
+
+int changeStateS(State *state, unsigned char byte, ControlCommand command, unsigned char address);
 
 int changeStateInfo(State *state, int ns, unsigned char byte);
 
 int sendOpenCloseFrame(int fd, ControlCommand command, int address);
 
-int sendSetFrame(int fd);
-
-int receiveSetFrame(int fd);
-
-int sendUAFrame(int fd);
-
-int receiveUAFrame(int fd);
+int receiveOpenCloseFrame(int fd, ControlCommand command, int address);
 
 int sendRRFrame(int fd, int nr);
 

@@ -1,6 +1,8 @@
 #ifndef PORT_H
 #define PORT_H
 
+#pragma once
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <termios.h>

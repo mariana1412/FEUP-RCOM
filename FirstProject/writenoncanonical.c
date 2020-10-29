@@ -9,6 +9,7 @@
 #include <unistd.h>
 #include "dataLink.h"
 
+
 int main(int argc, char** argv){
 
   if((argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0) && (strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
@@ -21,6 +22,7 @@ int main(int argc, char** argv){
   if(strcmp("/dev/ttyS11", argv[1]) == 0) port = COM11;
   if(strcmp("/dev/ttyS0", argv[1]) == 0) port = COM0;
   if(strcmp("/dev/ttyS1", argv[1]) == 0) port = COM1;
+
 
   int fd = llopen(port, SENDER);
   if(fd < 0){

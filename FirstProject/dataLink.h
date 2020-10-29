@@ -6,10 +6,6 @@
 #include "protocol.h"
 #include "port.h"
 
-void alarmHandler();
-
-int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive);
-
 int llopen(int port, int status);
 
 int llwrite(int fd, char* buffer, int length);
