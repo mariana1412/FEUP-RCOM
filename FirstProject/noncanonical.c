@@ -29,6 +29,7 @@ int main(int argc, char** argv){
         exit(1);
     }
 
+    
     //llwrite e llread!!!
 
     if(llclose(fd, RECEIVER) < 0){

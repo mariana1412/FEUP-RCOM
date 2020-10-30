@@ -1,7 +1,6 @@
 #include "protocol.h"
 
 int alarmSender = 1;
-char bcc2Check = 0x0;
 
 void alarmHandler(){
     alarmSender = 0; 
@@ -43,229 +42,6 @@ int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive) {
     return -1;
 }
 
-int changeStateS(State *state, unsigned char byte, ControlCommand command, unsigned char address){
-    int nr = -1;
-    int isCorrect;
-
-    switch (*state)
-    {
-    case START:
-        if(byte == FLAG){
-            *state = FLAG_RCV;
-            printf("state = start -> flag!!! \n");
-        }
-        break;
-    
-    case FLAG_RCV:
-        if(byte == FLAG){
-            printf("state = flag_rcv -> flag!!! \n");
-        }
-        else if(byte == address){
-            printf("state = flag_rcv -> a_rec!!! \n");
-            *state = A_RCV;
-        }
-        else
-        {
-            printf("state = flag_rcv -> else!!! \n");
-            *state = START;
-        }
-        
-        break;
-
-    case A_RCV:
-        isCorrect = FALSE;
-
-        switch (command) {
-            case SET:
-                if (byte == SET_COMMAND) isCorrect = TRUE;
-                break;
-            case DISC:
-                if (byte == DISC_COMMAND) isCorrect = TRUE;
-                break;
-            case UA:
-                if(byte == UA_COMMAND) isCorrect = TRUE;
-                break;
-            case RR:
-                if (byte == 0x85) {
-                    isCorrect = TRUE;
-                    nr = 1;
-                } else if (byte == 0x05) {
-                    isCorrect = TRUE;
-                    nr = 0;
-                }
-                break;
-        }
-
-        if(isCorrect){
-            printf("state = a_rcv -> set, disc or ua!!! \n");
-            *state = C_RCV;
-        }  
-        else if(byte == FLAG){
-            printf("state = a_rcv -> flag!!! \n");
-            *state = FLAG_RCV;
-        }
-        else {
-            printf("state = a_rcv -> else!!! \n");
-            *state = START;
-        }
-
-        break;
-    
-    case C_RCV:
-        
-        isCorrect = FALSE;
-
-        switch (command) {
-            case SET:
-                if (byte == (address ^ SET_COMMAND)) isCorrect = TRUE;
-                break;
-            case DISC:
-                if (byte == (address ^ DISC_COMMAND)) isCorrect = TRUE;
-                break;
-            case UA:
-                if(byte == (address ^ UA_COMMAND)) isCorrect = TRUE;
-                break;
-            case RR:
-                break;
-        }
-
-        if(isCorrect){
-            printf("state = c_rcv -> ^ !!! \n");
-            *state = BCC_OK;
-        }  
-        
-        else if(byte == FLAG){
-            printf("state = c_rcv -> flag!!! \n");
-            *state = FLAG_RCV;
-        }
-        else {
-            printf("state = c_rcv -> else!!! \n");
-            *state = START;
-        }
-        break;
-
-    case BCC_OK:
-        if(byte == FLAG){
-            printf("state = bcc_ok -> flag!!! \n");
-            *state = STOP;
-        }
-        else{
-            printf("state = bcc_ok -> else!!! \n");
-            *state = START;
-        }
-        break;
-    }
-
-    return nr;
-}
-
-int changeStateInfo(State *state, int ns, unsigned char byte) {
-    switch (*state)
-    {
-    case START:
-        if(byte == FLAG){
-            *state = FLAG_RCV;
-            printf("state = start -> flag!!! \n");
-        }
-        break;
-    
-    case FLAG_RCV:
-        if(byte == FLAG){
-            printf("state = flag_rcv -> flag!!! \n");
-        }
-        else if(byte == SEND_REC){
-            printf("state = flag_rcv -> a_rec!!! \n");
-            *state = A_RCV;
-        }
-        else
-        {
-            printf("state = flag_rcv -> else!!! \n");
-            *state = START;
-        }
-        
-        break;
-
-    case A_RCV:
-        if(byte == ns << 6){
-            printf("state = a_rcv -> c_rcv!!! \n");
-            *state = C_RCV;
-        }  
-        else if(byte == FLAG){
-            printf("state = a_rcv -> flag!!! \n");
-            *state = FLAG_RCV;
-        }
-        else {
-            printf("state = a_rcv -> else!!! \n");
-            *state = START;
-        }
-
-        break;
-    
-    case C_RCV:
-        if(byte == SEND_REC ^ (ns << 6)){
-            printf("state = c_rcv -> bcc_ok !!! \n");
-            *state = BCC_OK;
-        }  
-        else if(byte == FLAG){
-            printf("state = c_rcv -> flag!!! \n");
-            *state = FLAG_RCV;
-        }
-        else {
-            printf("state = c_rcv -> else!!! \n");
-            *state = START;
-        }
-        break;
-
-    case BCC_OK:
-        if(byte == 0x02){
-            printf("state = bcc_ok -> data!!! \n");
-            *state = DATA;
-        }
-        else{
-            printf("state = bcc_ok -> else!!! \n");
-            *state = START;
-        }
-        break;
-    case DATA:
-        if(byte == 0x03){
-            printf("state = data -> c2_rcv!!! \n");
-            *state = C2_RCV;
-        } else if (byte == FLAG) {
-            printf("state = data -> flag!!! \n");
-            *state = FLAG;
-        } else {
-            printf("received data byte!!! \n");
-            bcc2Check = bcc2Check ^ byte;
-        }
-        break;
-    case C2_RCV:
-        if (byte == bcc2Check) {
-            printf("state = c2_rcv -> bcc2_ok!!! \n");
-            *state = BCC2_OK;
-        } else if (byte == FLAG) {
-            printf("state = c2_rcv -> flag!!! \n");
-            *state = FLAG;
-        }
-        else {
-            printf("state = c2_rcv -> else!!! \n");
-            *state = START;
-        }
-        break;
-    case BCC2_OK:
-        if(byte == FLAG){
-            printf("state = bcc2_ok -> flag!!! \n");
-            *state = STOP;
-        }
-        else{
-            printf("state = bcc2_ok -> else!!! \n");
-            *state = START;
-        }
-        break;
-    }
-    
-    return 0;
-}
-
 int sendOpenCloseFrame(int fd, ControlCommand command, int address) {
     int res;
     char frame[S_FRAME_SIZE];
@@ -296,7 +72,7 @@ int sendOpenCloseFrame(int fd, ControlCommand command, int address) {
     if (res == -1) return -1;
     
     return 0;
-    }
+}
 
 int receiveOpenCloseFrame(int fd, ControlCommand command, int address) {
     char buf[255];
@@ -316,92 +92,6 @@ int receiveOpenCloseFrame(int fd, ControlCommand command, int address) {
 
     return 0;
 }
-
-// int receiveSetFrame(int fd){
-//     char buf[255];
-//     int res;
-
-//     State state = START;
-
-//     while (state != STOP) {       
-//         res = read(fd, buf, 1);   
-//         if(res == 0) continue;
-//         if(res < 0) return -1;
-              
-//         printf("%d\n", buf[0]);
-
-//         changeStateS(&state, buf[0], SET);     
-//     }
-
-//     return 0;
-// }
-
-// int receiveUAFrame(int fd){
-//     char buf[255];
-//     int res;
-
-//     State state = START;
-
-//     while (state != STOP && alarmSender == 1) {
-//         res = read(fd, buf, 1);
-//         if(res == 0) continue;
-//         if(res < 0) return res;
-
-//         printf("%d\n", buf[0]);
-
-//         changeStateS(&state, buf[0], UA); 
-//     }
-
-//     if (alarmSender == 0) return 1;
-
-//     return 0;    
-// }
-
-// int sendRRFrame(int fd, int nr) {
-//     int res;
-//     char rrFrame[S_FRAME_SIZE];
-
-//     rrFrame[0] = FLAG;
-//     rrFrame[1] = SEND_REC;
-//     rrFrame[2] = RR(nr);
-//     rrFrame[3] = SEND_REC ^ RR(nr);
-//     rrFrame[4] = FLAG;
-
-//     res = write(fd, rrFrame, S_FRAME_SIZE);
-
-//     if(res < 1) {
-//         printf("Could not send RR FRAME!\n");
-//         return -1;
-//     }
-
-//     printf("RR message sent! %d bytes written\n", res);
-
-//     return 0;
-// }
-
-// int receiveRRFrame (int fd, int *nr) { 
-//     char buf[255];
-//     int res;
-//     int r;
-
-//     State state = START;
-
-//     while (state != STOP && alarmSender == 1) {       /* loop for input */
-//         res = read(fd, buf, 1);   /* returns after 1 chars have been input */
-//         if(res == 0) continue;
-//         if(res < 0) return -1;
-
-//         printf("%d\n", buf[0]);
-
-//         if(r = changeStateS(&state, buf[0], RR) != -1){
-//             *nr = r;
-//         }
-//     }
-
-//     if (alarmSender == 0) return 1;
-
-//     return 0;    
-// }
 
 int sendInfoFrame(int fd, int ns, char* info) {
     int res;
@@ -436,7 +126,7 @@ int sendInfoFrame(int fd, int ns, char* info) {
     return 0;
 }
 
-int receiveInfoFrame (int fd, int ns, char* info) {
+int receiveInfoFrame(int fd, int ns, char* info) {
     char buf[255];
     int res;
     int i = 0;
@@ -451,7 +141,6 @@ int receiveInfoFrame (int fd, int ns, char* info) {
         if(res < 0) return -1;
 
         printf("%c\n", buf[0]);
-        fflush(stdin);
 
         if (state == DATA) {
             info[i] = buf[0];

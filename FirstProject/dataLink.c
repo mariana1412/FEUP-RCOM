@@ -42,17 +42,19 @@ int llopen(int port, int status){
     return -1;
 }
 
-int llwrite(int fd, char* buffer, int length){
+//
+//buffer-> carateres para transmitir, length -> comprimento de array de caracteres
+int llwrite(int fd, char* buffer, int length){ //retorna nº de caracteres escritos, -1 quando erro
+    //tratar de stuffing e unstuffing
+    //enviar mensagem I; -> 
+    //ler mensagem com rr ou rej
+}
+
+//buffer-> array de carateres recebidos
+int llread(int fd, char* buffer){ // retorna comprimento do array/nºcaracteres lidos
     //tratar de stuffing e unstuffing
     //ler mensagem I;
     //enviar mensagem com rr ou rej
-}
-
-int llread(int fd, char* buffer){
-    //tratar de stuffing e unstuffing
-    //ciclo para tentativas com alarme:
-    //enviar mensagem I;
-    //receber mensagem e verificar se é rr ou rej
 }
 
 int llclose(int fd, int status){

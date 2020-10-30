@@ -37,16 +37,4 @@
 #define FILESIZE        0
 #define FILENAME        1
 
-struct AppLayer {
-    int fd;
-    int status;
-} AppLayer;
-
-struct Frame_S {
-    char flag;
-    char address;
-    char command;
-    char bcc;
-} Frame_S;
-
 #endif /*MACROS_H*/
