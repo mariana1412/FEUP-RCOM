@@ -8,7 +8,15 @@
 
 int changeStateS(State *state, unsigned char byte, ControlCommand command, unsigned char address);
 
-int changeStateInfo(State *state, int ns, unsigned char byte);
+int changeStateInfo(State *state, unsigned char byte, int fd);
+
+int readControlPacket(int fd);
+
+int checkControlPacket(int fd);
+
+int readDataPacket(int fd);
+
+File* getFile();
 
 #endif /*STATEMACHINES_H*/
 

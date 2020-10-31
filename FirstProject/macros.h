@@ -30,11 +30,16 @@
 #define SET_COMMAND     0x03
 #define DISC_COMMAND    0x0B
 #define UA_COMMAND      0x07
-#define RR(R)           R << 7 + 0x05  
-#define REJ(R)          R << 7 + 0x01  
+#define RR(R)           (R == 0) ?  0x05 : 0x85
+#define REJ(R)          (R == 0) ?  0x01 : 0x81
+#define NS(S)           (S == 0) ?  0x00 : 0x40
 
 //Control Packet
 #define FILESIZE        0
 #define FILENAME        1
+
+#define DATA_BYTE       0x01
+#define START_BYTE      0x02
+#define END_BYTE        0x03
 
 #endif /*MACROS_H*/

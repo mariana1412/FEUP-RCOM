@@ -30,6 +30,13 @@ int main(int argc, char** argv){
         exit(1);
     }
 
+    struct stat fileInfo;
+    stat("pinguim.gif", &fileInfo);
+
+    unsigned char* StartPacket = makeControlPacket(START_BYTE, fileInfo.st_size, "pinguim.gif");
+    unsigned char* EndPacket = makeControlPacket(END_BYTE, fileInfo.st_size, "pinguim.gif");
+
+    
 
     //llwrite e llread!!!
 

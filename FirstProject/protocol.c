@@ -95,24 +95,22 @@ int receiveOpenCloseFrame(int fd, ControlCommand command, int address) {
 
 int sendInfoFrame(int fd, int ns, char* info) {
     int res;
-    char* infoFrame;
+    unsigned char* infoFrame;
     int infoLength = strlen(info);
-    char bcc2 = 0x0;
+    unsigned char bcc2 = 0x0;
 
     infoFrame[0] = FLAG;
     infoFrame[1] = SEND_REC;
     infoFrame[2] = ns << 6;
     infoFrame[3] = SEND_REC ^ infoFrame[2];
-    infoFrame[4] = 0x02;
 
     for (int i = 0; i < infoLength; i++) {
-        infoFrame[i + 5] = info[i];
-        bcc2 = bcc2 ^ infoFrame[i + 5];
+        infoFrame[i + 4] = info[i];
+        bcc2 = bcc2 ^ infoFrame[i + 4];
     }
 
-    infoFrame[infoLength + 5] = 0x03;
-    infoFrame[infoLength + 6] = bcc2;
-    infoFrame[infoLength + 7] = FLAG;
+    infoFrame[infoLength + 4] = bcc2;
+    infoFrame[infoLength + 5] = FLAG;
 
     res = write(fd, infoFrame, 8+infoLength);
 
@@ -126,13 +124,12 @@ int sendInfoFrame(int fd, int ns, char* info) {
     return 0;
 }
 
-int receiveInfoFrame(int fd, int ns, char* info) {
-    char buf[255];
+int receiveInfoFrame(int fd, int ns) {
+    unsigned char buf[255];
     int res;
     int i = 0;
 
     State state = START;
-
 
     while (state != STOP) {       /* loop for input */
         res = read(fd, buf, 1);   /* returns after 1 chars have been input */
@@ -142,18 +139,14 @@ int receiveInfoFrame(int fd, int ns, char* info) {
 
         printf("%c\n", buf[0]);
 
-        if (state == DATA) {
-            info[i] = buf[0];
-            i++;
-        }
-        changeStateInfo(&state, ns, buf[0]); 
+        changeStateInfo(&state, ns, buf[0], fd); 
     }
     
     return 0;    
 }
 
-char* makeControlPacket(int control, int fileSize, char* fileName) {
-    char* packet;
+unsigned char* makeControlPacket(unsigned char control, int fileSize, char* fileName) {
+    unsigned char* packet;
     int index = 0;
     
     packet[index++] = control;
@@ -173,4 +166,23 @@ char* makeControlPacket(int control, int fileSize, char* fileName) {
     }
     
     return packet;
+}
+
+unsigned char* makeDataPacket(char *info, int N){
+    unsigned char* packet;
+    int index = 0;
+
+    packet[index++] = DATA_BYTE;
+    packet[index++] = N;
+
+    int length = sizeof(info)/sizeof(char *);
+
+    packet[index++] = length/256;
+    packet[index++] = length%256;
+
+    for(int i = 0; i < length; i++){
+        packet[index++] = info[i];
+    }
+
+    return 0;
 }

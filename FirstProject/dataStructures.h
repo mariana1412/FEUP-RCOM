@@ -15,6 +15,14 @@ struct Frame_S {
     char bcc;
 } Frame_S;
 
+typedef struct File {
+    int size;
+    unsigned char* name;
+    unsigned char* controlPacket; //sem start/end
+    int lastIndex;
+    unsigned char* data;
+} File;
+
 typedef enum State{START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, DATA, C2_RCV, BCC2_OK, STOP} State;
 typedef enum ControlCommand{SET, DISC, UA, RR, REJ} ControlCommand;
 
