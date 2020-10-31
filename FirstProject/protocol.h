@@ -16,11 +16,13 @@ int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive);
 
 int sendOpenCloseFrame(int fd, ControlCommand command, int address);
 
+int sendAckFrame(int fd, ControlCommand command, int r);
+
 int receiveOpenCloseFrame(int fd, ControlCommand command, int address);
 
-int sendInfoFrame(int fd, int ns, char* info);
+int sendInfoFrame(int fd, int ns, char* info, int length);
 
-int receiveInfoFrame(int fd, int ns);
+int receiveInfoFrame(int fd, char* info);
 
 unsigned char* makeControlPacket(unsigned char control, int fileSize, char* fileName);
 

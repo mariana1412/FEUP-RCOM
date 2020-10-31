@@ -3,6 +3,8 @@
 unsigned char bcc2Check = 0x0;
 static int started = FALSE;
 static int finished = FALSE;
+static int s = 0;
+static int rej = FALSE;
 
 static File *file;
 
@@ -123,10 +125,10 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command, unsig
 }
 
 int changeStateInfo(State *state, unsigned char byte, int fd) {
-    switch (*state)
-    {
+    switch (*state) {
     case START:
         if(byte == FLAG){
+            s = 0;
             *state = FLAG_RCV;
             printf("state = start -> flag!!! \n");
         }
@@ -149,9 +151,10 @@ int changeStateInfo(State *state, unsigned char byte, int fd) {
         break;
 
     case A_RCV:
-        if(byte == ns << 6){
-            printf("state = a_rcv -> c_rcv!!! \n");
+        if(byte == NS(s) || (byte == NS(++s))){
+            printf("state = a_rcv -> c_rcv!!! s = %d, ns = %d\n", s, NS(s));
             *state = C_RCV;
+            return s;
         }  
         else if(byte == FLAG){
             printf("state = a_rcv -> flag!!! \n");
@@ -165,11 +168,9 @@ int changeStateInfo(State *state, unsigned char byte, int fd) {
         break;
     
     case C_RCV:
-        int s = 0;
-        if(byte == NS(s) || (byte == NS(++s))){
-            printf("state = c_rcv -> bcc_ok !!! ns = %d\n", s);
+        if(byte == SEND_REC ^ NS(s)){
+            printf("state = c_rcv -> bcc_ok !!! s = %d, ns = %d\n", s, NS(s));
             *state = BCC_OK;
-            return s;
         }  
         else if(byte == FLAG){
             printf("state = c_rcv -> flag!!! \n");
@@ -198,57 +199,8 @@ int changeStateInfo(State *state, unsigned char byte, int fd) {
         } else { 
             printf("received data byte!!! \t");
             bcc2Check = bcc2Check ^ byte;
-
-            switch (byte){
-
-            case (START_BYTE):
-                if (started == FALSE && (finished == FALSE)){
-                    printf("START -> Called function to read control packet!!! \n");
-                    if(readControlPacket(fd) == -1){
-                        *state = START;
-                        printf("something went wrong -> readControlPacket\n");
-                    }
-                    else started = TRUE;
-                }
-                else {
-                    printf("Something is wrong: start/end byte!!! \n");
-                    started = TRUE;
-                    *state = START;
-                }
-
-            break;
-
-            case (DATA_BYTE):
-                if(started == FALSE){
-                    printf("Data -> Haven't received start byte yet!\n");
-                    *state = START;
-                }
-                else { //TO DO: verificar se o N está a 0 ou não
-                    printf("Called function to read data packet!!! \n");
-                    started = TRUE;
-                    
-                }
-
-            break;
-
-            case (END_BYTE):
-                if(started == FALSE){
-                    printf("End -> Haven't received start byte yet!\n");
-                    *state = START;
-                }
-                else if(checkControlPacket(fd) == 0){
-                    printf("state = data -> c2_rcv!!! \n");
-                    finished = TRUE;
-                    *state = C2_RCV;
-                }
-                else {
-                    printf("Something is wrong: end byte!!! \n");
-                    finished = TRUE;
-                    *state = START;
-                }
-            break;
-            }
         }
+        
         break;
     case C2_RCV:
         if (byte == bcc2Check) {
@@ -256,10 +208,12 @@ int changeStateInfo(State *state, unsigned char byte, int fd) {
             *state = BCC2_OK;
         } else if (byte == FLAG) {
             printf("state = c2_rcv -> flag!!! \n");
+            rej = TRUE;
             *state = FLAG;
         }
         else {
             printf("state = c2_rcv -> else!!! \n");
+            rej = TRUE;
             *state = START;
         }
         break;
@@ -373,10 +327,14 @@ int readDataPacket(int fd){
         if(res != 1) return -1;
         file->data[file->lastIndex++] = buf[0]; 
     }
-
+    
     return 0;
 }
 
 File* getFile(){
     return file;
+}
+
+int getREJ(){
+    return rej;
 }

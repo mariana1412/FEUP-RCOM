@@ -18,5 +18,7 @@ int readDataPacket(int fd);
 
 File* getFile();
 
+int getREJ();
+
 #endif /*STATEMACHINES_H*/
 

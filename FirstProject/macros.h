@@ -30,16 +30,20 @@
 #define SET_COMMAND     0x03
 #define DISC_COMMAND    0x0B
 #define UA_COMMAND      0x07
-#define RR(R)           (R == 0) ?  0x05 : 0x85
-#define REJ(R)          (R == 0) ?  0x01 : 0x81
+#define RR_COMMAND(R)           (R == 0) ?  0x05 : 0x85
+#define REJ_COMMAND(R)          (R == 0) ?  0x01 : 0x81
 #define NS(S)           (S == 0) ?  0x00 : 0x40
 
-//Control Packet
+//I Frames
+#define IFRAME_MAX_SIZE 1024
+
+//Packet
 #define FILESIZE        0
 #define FILENAME        1
 
 #define DATA_BYTE       0x01
 #define START_BYTE      0x02
 #define END_BYTE        0x03
+
 
 #endif /*MACROS_H*/

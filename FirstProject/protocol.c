@@ -63,14 +63,58 @@ int sendOpenCloseFrame(int fd, ControlCommand command, int address) {
             frame[2] = UA_COMMAND;
             frame[3] = address ^ UA_COMMAND;
             break;
+
         default:
             break;
     }
 
     res = write(fd, frame, S_FRAME_SIZE);
-
     if (res == -1) return -1;
-    
+    return 0;
+}
+
+int sendAckFrame(int fd, ControlCommand command, int r) {
+    int res;
+    char frame[S_FRAME_SIZE];
+
+    frame[0] = FLAG;
+    frame[1] = SEND_REC;
+    frame[4] = FLAG;
+
+    switch(command) {
+        case RR:
+            frame[2] = RR_COMMAND(r);
+            frame[3] = RR_COMMAND(r) ^ SET_COMMAND;
+            break;
+        case REJ:
+            frame[2] = REJ_COMMAND(r);
+            frame[3] = REJ_COMMAND(r) ^ DISC_COMMAND;
+            break;
+        default:
+            break;
+    }
+
+    res = write(fd, frame, S_FRAME_SIZE);
+    if (res == -1) return -1;
+    return 0;
+}
+
+int receiveAckFrame(int fd) {
+    char buf[255];
+    int res;
+
+    State state = START;
+
+    while (state != STOP && alarmSender == 1) {       
+        res = read(fd, buf, 1);   
+        if(res == 0) continue;
+        if(res < 0) return -1;
+              
+        printf("%d\n", buf[0]);
+
+        changeStateAck(&state, buf[0]);     
+    }
+
     return 0;
 }
 
@@ -93,10 +137,9 @@ int receiveOpenCloseFrame(int fd, ControlCommand command, int address) {
     return 0;
 }
 
-int sendInfoFrame(int fd, int ns, char* info) {
+int sendInfoFrame(int fd, int ns, char* info, int length) {
     int res;
     unsigned char* infoFrame;
-    int infoLength = strlen(info);
     unsigned char bcc2 = 0x0;
 
     infoFrame[0] = FLAG;
@@ -104,30 +147,28 @@ int sendInfoFrame(int fd, int ns, char* info) {
     infoFrame[2] = ns << 6;
     infoFrame[3] = SEND_REC ^ infoFrame[2];
 
-    for (int i = 0; i < infoLength; i++) {
+    for (int i = 0; i < length; i++) {
         infoFrame[i + 4] = info[i];
         bcc2 = bcc2 ^ infoFrame[i + 4];
     }
 
-    infoFrame[infoLength + 4] = bcc2;
-    infoFrame[infoLength + 5] = FLAG;
+    infoFrame[length + 4] = bcc2;
+    infoFrame[length + 5] = FLAG;
 
-    res = write(fd, infoFrame, 8+infoLength);
+    res = write(fd, infoFrame, length + 6);
 
-    if(res < 1) {
-        printf("Could not send Information FRAME!\n");
-        return -1;
-    }
+    if(res < 1) return -1;
 
-    printf("Information message sent! %d bytes written\n", res);
+    printf("I Frame sent! %d bytes written\n", res);
 
     return 0;
 }
 
-int receiveInfoFrame(int fd, int ns) {
+int receiveInfoFrame(int fd, char* info) {
     unsigned char buf[255];
     int res;
     int i = 0;
+    int nr = -1;
 
     State state = START;
 
@@ -139,9 +180,13 @@ int receiveInfoFrame(int fd, int ns) {
 
         printf("%c\n", buf[0]);
 
-        changeStateInfo(&state, ns, buf[0], fd); 
+        changeStateInfo(&state, buf[0], fd);
+
+        if (state == DATA) {
+            info[i++] = buf[0];
+        }
     }
-    
+
     return 0;    
 }
 

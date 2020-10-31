@@ -45,9 +45,35 @@ int llopen(int port, int status){
 //
 //buffer-> carateres para transmitir, length -> comprimento de array de caracteres
 int llwrite(int fd, char* buffer, int length){ //retorna nº de caracteres escritos, -1 quando erro
-    char* startPacket = makeControlPacket()
+    struct sigaction newAction, oldAction;
 
-    
+    newAction.sa_handler = alarmHandler;
+    sigemptyset(&newAction.sa_mask);
+    newAction.sa_flags = 0;
+
+    sigaction(SIGALRM, &newAction, &oldAction);
+
+    int bytesSent;
+    int response;
+
+    int ns = atoi(buffer[length-1]);
+
+    for (int i = 0; i < 4; i++) {
+        bytesSent = sendInfoFrame(fd, ns, buffer, length-1);
+        if (bytesSent == -1) {
+            printf("Could not send I Frame! Attempt number %d", i+1);
+            return -1;
+        } else {
+            printf("Sent I Frame! Attempt number %d", i+1);
+        }
+
+        alarmSender = 1;
+        alarm(3);
+
+        while (alarmSender) {
+            response = receiveInfoFrame(fd)
+        }
+    }
 
     
 }
@@ -56,9 +82,17 @@ int llwrite(int fd, char* buffer, int length){ //retorna nº de caracteres escri
 int llread(int fd, char* buffer){ // retorna comprimento do array/nºcaracteres lidos
     //tratar de stuffing e unstuffing
 
-    
-    
+    int receive = receiveInfoFrame(fd);
+    if(getREJ())
+        sendAckFrame(fd, REJ, receive);
+    else
+        sendAckFrame(fd, RR, 1-receive);
 
+    for(int i = 0; i < getFile().size; i++){
+        buffer[i] = getFile()[i];
+    }
+    
+    return getFile().size;
 
     //ler mensagem I;
     //enviar mensagem com rr ou rej
