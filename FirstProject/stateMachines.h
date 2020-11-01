@@ -10,13 +10,7 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command, unsig
 
 int changeStateInfo(State *state, unsigned char byte, int fd);
 
-int readControlPacket(int fd);
-
-int checkControlPacket(int fd);
-
-int readDataPacket(int fd);
-
-File* getFile();
+int changeStateAck(AckState *state, unsigned char byte);
 
 int getREJ();
 

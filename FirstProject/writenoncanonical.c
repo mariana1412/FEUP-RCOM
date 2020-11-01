@@ -34,7 +34,6 @@ int main(int argc, char** argv){
     stat("pinguim.gif", &fileInfo);
 
     unsigned char* StartPacket = makeControlPacket(START_BYTE, fileInfo.st_size, "pinguim.gif");
-    StartPacket[strlen(StartPacket)] = 0;
 
     if (llwrite(fd, StartPacket, strlen(StartPacket)) == -1) {
         printf("Could not send Start Packet!");
@@ -48,11 +47,9 @@ int main(int argc, char** argv){
     int charactersRead;
     char* fileBuffer;
     int sequenceN = 0;
-    int ns = 1;
 
-    while(charactersRead = read(fdFile, fileBuffer, IFRAME_MAX_SIZE - 10) != 0) {
-        char* dataPacket = makeDataPacket(fileBuffer, sequenceN);
-        dataPacket[strlen(dataPacket)] = ns;
+    while(charactersRead = read(fdFile, fileBuffer, MAX_K) != 0) {
+        unsigned char* dataPacket = makeDataPacket(fileBuffer, sequenceN);
 
         if (llwrite(fd, dataPacket, strlen(dataPacket)) == -1) {
             printf("Could not send Data Packet number %d", sequenceN);
@@ -63,11 +60,9 @@ int main(int argc, char** argv){
         }
 
         sequenceN++;
-        ns = 1 - ns;
     }
 
     unsigned char* EndPacket = makeControlPacket(END_BYTE, fileInfo.st_size, "pinguim.gif");
-    EndPacket[strlen(EndPacket)] = ns;
 
     if (llwrite(fd, EndPacket, strlen(EndPacket)) == -1) {
         printf("Could not send End Packet!");

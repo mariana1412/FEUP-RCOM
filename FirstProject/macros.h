@@ -29,15 +29,19 @@
 
 #define SET_COMMAND     0x03
 #define DISC_COMMAND    0x0B
-#define UA_COMMAND      0x07
-#define RR_COMMAND(R)           (R == 0) ?  0x05 : 0x85
-#define REJ_COMMAND(R)          (R == 0) ?  0x01 : 0x81
-#define NS(S)           (S == 0) ?  0x00 : 0x40
+#define UA_ANSWER       0x07
+#define RR_ANSWER(R)    (R == 0) ?  0x05 : 0x85
+#define REJ_ANSWER(R)   (R == 0) ?  0x01 : 0x81
 
 //I Frames
-#define IFRAME_MAX_SIZE 1024
+#define IFRAME_SIZE     1024
+#define DATA_MAX_SIZE   (IFRAME_SIZE - 6)
+#define NS(S)           (S == 0) ?  0x00 : 0x40
+#define ESCAPE          0x7D
 
 //Packet
+#define MAX_K           ((DATA_MAX_SIZE / 2) - 4)
+
 #define FILESIZE        0
 #define FILENAME        1
 

@@ -1,5 +1,6 @@
 #include "dataLink.h"
 
+static int ns = 0;
 
 int llopen(int port, int status){
     struct sigaction newAction, oldAction;
@@ -56,8 +57,6 @@ int llwrite(int fd, char* buffer, int length){ //retorna nº de caracteres escri
     int bytesSent;
     int response;
 
-    int ns = atoi(buffer[length-1]);
-
     for (int i = 0; i < 4; i++) {
         bytesSent = sendInfoFrame(fd, ns, buffer, length-1);
         if (bytesSent == -1) {
@@ -71,31 +70,43 @@ int llwrite(int fd, char* buffer, int length){ //retorna nº de caracteres escri
         alarm(3);
 
         while (alarmSender) {
-            response = receiveInfoFrame(fd)
+            response = receiveAckFrame(fd, ns);
+            if (response < 0) {
+                printf("Could not read ACK Frame!");
+                return -1;
+            } else {
+                alarm(0);
+                break;
+            }
+        }
+
+        if (alarmSender) {
+            if (response == 0) {
+                ns = 1-ns;
+                return bytesSent;
+            } else if (i < 3) {
+                printf("Rejected, trying again...\n", i+1);
+            }
+        } else if (i < 3) {
+            printf("Timeout number %d, trying again...\n", i+1);
         }
     }
 
-    
+    return -1;
 }
 
 //buffer-> array de carateres recebidos
-int llread(int fd, char* buffer){ // retorna comprimento do array/nºcaracteres lidos
-    //tratar de stuffing e unstuffing
+int llread(int fd, unsigned char* buffer){ // retorna comprimento do array/nºcaracteres lidos
 
-    int receive = receiveInfoFrame(fd);
-    if(getREJ())
+    int receive = receiveInfoFrame(fd, buffer);
+
+    if(getREJ() || (receive < 0))
         sendAckFrame(fd, REJ, receive);
     else
         sendAckFrame(fd, RR, 1-receive);
 
-    for(int i = 0; i < getFile().size; i++){
-        buffer[i] = getFile()[i];
-    }
     
-    return getFile().size;
-
-    //ler mensagem I;
-    //enviar mensagem com rr ou rej
+    return strlen((char*) buffer); //confirmar isto
 }
 
 int llclose(int fd, int status){

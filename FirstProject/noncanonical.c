@@ -6,12 +6,14 @@
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
-#include "protocol.h"
 #include "dataLink.h"
 #include "macros.h"
+#include "dataStructures.h"
 
-int main(int argc, char **argv)
-{
+static File *file;
+static int N = 0;
+
+int main(int argc, char **argv){
 
     if ((argc < 2) || ((strcmp("/dev/ttyS10", argv[1]) != 0) && (strcmp("/dev/ttyS11", argv[1]) != 0) && (strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0)))
     {
@@ -30,17 +32,50 @@ int main(int argc, char **argv)
         port = COM1;
 
     int fd = llopen(port, RECEIVER);
-    if (fd < 0)
-    {
+    if (fd < 0){
         printf("llopen failed\n");
         exit(1);
     }
 
-    char *info;
-    int size = llread(fd, info);
+    int size, totalSize, packets;
 
-    if (llclose(fd, RECEIVER) < 0)
-    {
+    while(!finished){
+        char info[DATA_HALF_SIZE];
+        size = llread(fd, info);
+        if(size < 0) break;
+        totalSize += size;
+
+        int result = parseInfo(info, size);
+
+        if(result == END_BYTE) finished = TRUE;
+        if(result == -1) break;
+
+        packets++;
+    }
+
+    if(!finished) printf("cycle interrupted!\n");
+    else {
+        printf("Received %d bytes and %d packets.\n", totalSize, packets);
+    }
+
+    int fileDescriptor = open(file->name, O_RDWR | O_CREAT, 0777);
+    if(fileDescriptor < 0){
+        printf("Error opening file!\n");
+        return -1;
+    }
+
+    if (write(fileDescriptor, file->data, file->size) < 0){
+        printf("Error writing to file!\n");
+        return -1;
+    }
+
+    if(close(fd) < 0){
+        printf("Error closing file!\n");
+        return -1;
+    }
+
+
+    if (llclose(fd, RECEIVER) < 0){
         printf("llclose failed\n");
         exit(1);
     }
@@ -48,66 +83,97 @@ int main(int argc, char **argv)
     return 0;
 }
 
-//NÃO ESTÁ BEM!!!
-int readDataPacket(char *info, int size)
-{
+int parseInfo(unsigned char *info, int size){
 
-    switch (byte)
-    {
+    unsigned char byte = info[0];
+    int fileDescriptor;
 
-    case (START_BYTE):
-        if (started == FALSE && (finished == FALSE))
-        {
-            printf("START -> Called function to read control packet!!! \n");
-            if (readControlPacket(fd) == -1)
-            {
-                *state = START;
-                printf("something went wrong -> readControlPacket\n");
+    switch(byte){
+        case START_BYTE:
+            if(parseControlPacket(info, size) < 0) return -1;
+            file->controlPacket = ++info; //confirmar
+            break;
+
+        case DATA_BYTE:
+            if (parseDataPacket(info, size) < 0) return -1;
+            N++;
+            break;
+
+        case END_BYTE:
+            if (checkControlPacket(info, size) < 0){
+                printf("End Control Packet is not corret!\n");
+                return -1;
             }
-            else
-                started = TRUE;
-        }
-        else
-        {
-            printf("Something is wrong: start/end byte!!! \n");
-            started = TRUE;
-            *state = START;
-        }
-
-        break;
-
-    case (DATA_BYTE):
-        if (started == FALSE)
-        {
-            printf("Data -> Haven't received start byte yet!\n");
-            *state = START;
-        }
-        else
-        { //TO DO: verificar se o N está a 0 ou não
-            printf("Called function to read data packet!!! \n");
-            started = TRUE;
-        }
-
-        break;
-
-    case (END_BYTE):
-        if (started == FALSE)
-        {
-            printf("End -> Haven't received start byte yet!\n");
-            *state = START;
-        }
-        else if (checkControlPacket(fd) == 0)
-        {
-            printf("state = data -> c2_rcv!!! \n");
             finished = TRUE;
-            *state = C2_RCV;
+            break;
+
+        default:
+            break;
+    }
+
+}
+
+int parseControlPacket(unsigned char *info, int size) {
+
+    int l, j;
+
+    for(int i = 1; i < size; i++){}
+
+        if(info[i++] == FILESIZE){
+            l = info[i++]; 
+            j = 0;
+            while(j != l) {
+                file->size = file->size * 256 + atoi(info[i++]);
+                j++;
+            }
         }
-        else
-        {
-            printf("Something is wrong: end byte!!! \n");
-            finished = TRUE;
-            *state = START;
+
+        else if(info[i++] == FILENAME){
+            l = info[i++];
+            j = 0;
+
+            while(j != l){
+                file->name[j++] = info[i++];
+            }
+            break;
         }
-        break;
+    }
+
+    file->lastIndex = 0;
+    printf("start -> control packet is correct!\n");
+    return 0;
+}
+
+int checkControlPacket(unsigned char* info, int size){
+
+    for(int i = 1; i < size; i++){
+        if(info[i] != file->controlPacket[i]) return -1;
+    }
+
+    printf("end -> control packet is correct!\n");
+    return 0;
+}
+
+int parseDataPacket(unsigned char *info, int size){
+    int index = 0;
+    unsigned char byte = info[index++];
+
+    if(byte != N) {
+        printf("N is not right!\n");
+        return -1;
+    }
+
+    int L2 = info[index++];
+    int L1 = info[index++];
+
+    int K = 256*L2 + L1;
+
+    if(index + K > file->size){
+        printf("index + K > size\n");
+        return -1;
+    } 
+
+    for(int i = 0; i < K; i++){
+        file->data[file->lastIndex++] = info[index++];
     }
 }
