@@ -3,14 +3,17 @@
 static struct termios oldtioReceiver, oldtioSender;
 
 int initPort(int portInt, int vtime, int vmin, int status){
-
-    char *port;
+    
+    char* port = (char *)malloc(11);
+    if (port == NULL) {
+        printf("Could not allocate memory for port!\n");
+        return -1;
+    }
     struct termios newtio;
 
     sprintf(port, "/dev/ttyS%d", portInt);
     
     int fd = open(port, O_RDWR | O_NOCTTY);
-
     if (fd < 0) {
         perror(port); 
         return -1; 

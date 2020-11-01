@@ -12,7 +12,7 @@ int llopen(int port, int status){
     sigaction(SIGALRM, &newAction, &oldAction);
 
     int fd = initPort(port, 0, 0, status);
-
+    
     int res;
 
     if (status == SENDER){
@@ -43,9 +43,7 @@ int llopen(int port, int status){
     return -1;
 }
 
-//
-//buffer-> carateres para transmitir, length -> comprimento de array de caracteres
-int llwrite(int fd, char* buffer, int length){ //retorna nº de caracteres escritos, -1 quando erro
+int llwrite(int fd, char* buffer, int length){
     struct sigaction newAction, oldAction;
 
     newAction.sa_handler = alarmHandler;
@@ -57,13 +55,16 @@ int llwrite(int fd, char* buffer, int length){ //retorna nº de caracteres escri
     int bytesSent;
     int response;
 
+    printf("%d length\n", length);
+
     for (int i = 0; i < 4; i++) {
-        bytesSent = sendInfoFrame(fd, ns, buffer, length-1);
+        printf("Sending Info\n");
+        bytesSent = sendInfoFrame(fd, ns, buffer, length);
         if (bytesSent == -1) {
-            printf("Could not send I Frame! Attempt number %d", i+1);
+            printf("Could not send I Frame! Attempt number %d\n", i+1);
             return -1;
         } else {
-            printf("Sent I Frame! Attempt number %d", i+1);
+            printf("Sent I Frame! Attempt number %d\n", i+1);
         }
 
         alarmSender = 1;
@@ -72,7 +73,7 @@ int llwrite(int fd, char* buffer, int length){ //retorna nº de caracteres escri
         while (alarmSender) {
             response = receiveAckFrame(fd, ns);
             if (response < 0) {
-                printf("Could not read ACK Frame!");
+                printf("Could not read ACK Frame!\n");
                 return -1;
             } else {
                 alarm(0);
@@ -96,7 +97,7 @@ int llwrite(int fd, char* buffer, int length){ //retorna nº de caracteres escri
 }
 
 //buffer-> array de carateres recebidos
-int llread(int fd, unsigned char* buffer){ // retorna comprimento do array/nºcaracteres lidos
+int llread(int fd, char* buffer){ // retorna comprimento do array/nºcaracteres lidos
 
     int receive = receiveInfoFrame(fd, buffer);
 

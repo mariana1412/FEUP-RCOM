@@ -6,6 +6,7 @@
 #include "protocol.h"
 #include "port.h"
 
+
 /**
  * Establishes a connection between devices, using a Stop and Wait mechanism.
  * 
@@ -47,4 +48,4 @@ int llread(int fd, char* buffer);
  */
 int llclose(int fd, int status);
 
-#endif /*DATALINK_H*/i
+#endif /*DATALINK_H*/

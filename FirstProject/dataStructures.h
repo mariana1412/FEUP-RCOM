@@ -23,8 +23,9 @@ typedef struct File {
     unsigned char* data;
 } File;
 
-typedef enum State{START, FLAG_RCV, A_RCV, C_RCV, DATA, C2_RCV, BCC2_OK, STOP} State;
-typedef enum AckState{START, FLAG_RCV, A_RCV, ACK_RCV, BCC_OK, STOP} AckState;
+typedef enum State{START, FLAG_RCV, A_RCV, C_RCV, BCC_OK, DATA, C2_RCV, BCC2_OK, STOP} State;
+
+typedef enum AckState{START_ACK, FLAG_ACK, A_ACK, ACK_RCV, BCC_ACK, STOP_ACK} AckState;
 
 typedef enum ControlCommand{SET, DISC, UA, RR, REJ} ControlCommand;
 

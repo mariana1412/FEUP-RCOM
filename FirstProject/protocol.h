@@ -3,6 +3,7 @@
 
 #include <signal.h>
 #include <stdio.h>
+#include <stdlib.h>
 #include <string.h>
 #include "macros.h"
 #include "dataStructures.h"
@@ -35,10 +36,10 @@ int receiveAckFrame(int fd, int ns);
 
 int sendInfoFrame(int fd, int ns, char* info, int length);
 
-int receiveInfoFrame(int fd, char* info);
+int receiveInfoFrame(int fd, unsigned char* info);
 
-unsigned char* makeControlPacket(unsigned char control, int fileSize, char* fileName);
+int makeControlPacket(unsigned char control, int fileSize, char* fileName, unsigned char* packet);
 
-unsigned char* makeDataPacket(char *info, int N);
+void makeDataPacket(char *info, int N, unsigned char* packet);
 
 #endif /*PROTOCOL_H*/

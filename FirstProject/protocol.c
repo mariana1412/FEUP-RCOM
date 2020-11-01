@@ -44,7 +44,7 @@ int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive) {
 
 int sendOpenCloseFrame(int fd, ControlCommand command, int address) {
     int res;
-    char frame[S_FRAME_SIZE];
+    unsigned char frame[S_FRAME_SIZE];
 
     frame[0] = FLAG;
     frame[1] = address;
@@ -100,7 +100,7 @@ int sendAckFrame(int fd, ControlCommand command, int r) {
 }
 
 int receiveOpenCloseFrame(int fd, ControlCommand command, int address) {
-    char buf[255];
+    unsigned char buf[255];
     int res;
 
     State state = START;
@@ -124,9 +124,9 @@ int receiveAckFrame(int fd, int ns) {
     int nr;
     int acknowledged = -1;
 
-    State state = START;
+    AckState state = START_ACK;
 
-    while (state != STOP && alarmSender == 1) {       
+    while (state != STOP_ACK && alarmSender == 1) {       
         res = read(fd, buf, 1);   
         if(res == 0) continue;
         if(res < 0) return -1;
@@ -135,7 +135,7 @@ int receiveAckFrame(int fd, int ns) {
 
         nr = changeStateAck(&state, buf[0]);
 
-        if(state == C_RCV) {
+        if(state == ACK_RCV) {
             if (nr == ns) {
                 acknowledged = 0;
             } else if (nr -2 == ns){
@@ -150,14 +150,16 @@ int receiveAckFrame(int fd, int ns) {
 int sendInfoFrame(int fd, int ns, char* info, int length) {
     int res, index = 0;
     unsigned char* infoFrame;
-    unsigned char bcc2 = 0x0;
+    unsigned char bcc2 = 0x00;
 
     infoFrame[index++] = FLAG;
     infoFrame[index++] = SEND_REC;
     infoFrame[index++] = NS(ns);
+
     infoFrame[index++] = SEND_REC ^ NS(ns);
 
     for (int i = 0; i < length; i++) {
+        printf("%d\n", info[i]);
         bcc2 = bcc2 ^ info[i];
         if (info[i] == FLAG || info[i] == ESCAPE) {
             infoFrame[index++] = ESCAPE;
@@ -172,7 +174,7 @@ int sendInfoFrame(int fd, int ns, char* info, int length) {
     infoFrame[index++] = bcc2;
     infoFrame[index++] = FLAG;
 
-    res = write(fd, infoFrame, IFRAME_SIZE);
+    res = write(fd, infoFrame, index);
 
     if(res < 1) return -1;
 
@@ -189,13 +191,13 @@ int receiveInfoFrame(int fd, unsigned char* info) {
 
     State state = START;
 
-    while (state != STOP) {       /* loop for input */
-        res = read(fd, buf, 1);   /* returns after 1 chars have been input */
+    while (state != STOP) {
+        res = read(fd, buf, 1);
 
         if(res == 0) continue;
         if(res < 0) return -1;
 
-        printf("%c\n", buf[0]);
+        printf("%d\n", buf[0]);
 
         int aux = changeStateInfo(&state, buf[0], fd);
         if(aux != -1 ) ns = aux;
@@ -208,31 +210,41 @@ int receiveInfoFrame(int fd, unsigned char* info) {
     return ns;    
 }
 
-unsigned char* makeControlPacket(unsigned char control, int fileSize, char* fileName) {
-    unsigned char* packet;
+int makeControlPacket(unsigned char control, int fileSize, char* fileName, unsigned char* packet) {
     int index = 0;
     
     packet[index++] = control;
+    printf("%d\n", packet[index-1]);
 
     packet[index++] = FILESIZE;
-    packet[index++] = sizeof(fileSize);
-
-    for (int i = 0; i < packet[2]; i++) {
-        packet[index++] = ((unsigned char*) fileSize)[i];
-    }
+    printf("%d\n", packet[index-1]);
+    packet[index++] = sizeof(int);
+    printf("%d\n", packet[index-1]);
     
+    unsigned char* n;
+    sprintf(n, "%d", fileSize);
+
+    for (int i = 0; i < sizeof(n); i++) {
+        packet[index++] = n[i];
+        printf("%d\n", packet[index-1]);
+    }
+
     packet[index++] = FILENAME;
-    packet[index++] = sizeof(fileName)/sizeof(char); //confirmar se é ou não char*
+    printf("%d\n", packet[index-1]);
+    packet[index++] = sizeof(fileName);
+    printf("%d\n", packet[index-1]);
     
     for (int j = 0; j < packet[index -1]; j++) {
         packet[index++] = fileName[j];
+        printf("%c\n", packet[index-1]);
     }
-    
-    return packet;
+
+    printf("%d\n", sizeof(packet)/sizeof(packet[0]));
+
+    return index;
 }
 
-unsigned char* makeDataPacket(char *info, int N){
-    unsigned char* packet;
+void makeDataPacket(char *info, int N, unsigned char* packet){
     int index = 0;
 
     packet[index++] = DATA_BYTE;
@@ -247,5 +259,5 @@ unsigned char* makeDataPacket(char *info, int N){
         packet[index++] = info[i];
     }
 
-    return packet;
+    return;
 }
