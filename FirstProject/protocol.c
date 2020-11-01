@@ -75,7 +75,7 @@ int sendOpenCloseFrame(int fd, ControlCommand command, int address) {
 
 int sendAckFrame(int fd, ControlCommand command, int r) {
     int res;
-    char frame[S_FRAME_SIZE];
+    unsigned char frame[S_FRAME_SIZE];
 
     frame[0] = FLAG;
     frame[1] = SEND_REC;
@@ -119,7 +119,7 @@ int receiveOpenCloseFrame(int fd, ControlCommand command, int address) {
 }
 
 int receiveAckFrame(int fd, int ns) {
-    char buf[255];
+    unsigned char buf[255];
     int res;
     int nr;
     int acknowledged = -1;
@@ -188,6 +188,7 @@ int receiveInfoFrame(int fd, unsigned char* info) {
     int res;
     int i = 0;
     int ns = -1;
+    int firstTime = TRUE;
 
     State state = START;
 
@@ -203,7 +204,11 @@ int receiveInfoFrame(int fd, unsigned char* info) {
         if(aux != -1 ) ns = aux;
 
         if (state == DATA) {
-            info[i++] = buf[0];
+            if(firstTime) firstTime = FALSE;
+            else {
+                printf("DATA %d\n", buf[0]);
+                info[i++] = buf[0];
+            }
         }
     }
 
@@ -238,8 +243,6 @@ int makeControlPacket(unsigned char control, int fileSize, char* fileName, unsig
         packet[index++] = fileName[j];
         printf("%c\n", packet[index-1]);
     }
-
-    printf("%d\n", sizeof(packet)/sizeof(packet[0]));
 
     return index;
 }

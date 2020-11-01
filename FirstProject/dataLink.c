@@ -99,15 +99,19 @@ int llwrite(int fd, char* buffer, int length){
 //buffer-> array de carateres recebidos
 int llread(int fd, char* buffer){ // retorna comprimento do array/nºcaracteres lidos
 
+    printf("llread!!!\n");
     int receive = receiveInfoFrame(fd, buffer);
 
-    if(getREJ() || (receive < 0))
+    if(getREJ() || (receive < 0)){
+        printf("send rej message\n");
         sendAckFrame(fd, REJ, receive);
-    else
+    }
+    else{
+        printf("send rr message!\n");
         sendAckFrame(fd, RR, 1-receive);
-
+    }
     
-    return strlen((char*) buffer); //confirmar isto
+    return sizeof(buffer)/sizeof(buffer[0]); //confirmar isto
 }
 
 int llclose(int fd, int status){

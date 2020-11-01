@@ -91,9 +91,9 @@ int main(int argc, char** argv){
         llclose(fd, SENDER);
     }
     
-    makeControlPacket(END_BYTE, fileInfo.st_size, "pinguim.gif", EndPacket);
+    packet_size = makeControlPacket(END_BYTE, fileInfo.st_size, "pinguim.gif", EndPacket);
 
-    if (llwrite(fd, EndPacket, strlen(EndPacket)) == -1) {
+    if (llwrite(fd, EndPacket, packet_size) == -1) {
         printf("Could not send End Packet!");
         if(llclose(fd, SENDER) < 0){
             printf("llclose failed\n");
