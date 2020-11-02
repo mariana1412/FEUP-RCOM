@@ -1,5 +1,3 @@
-#pragma once
-
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
@@ -9,100 +7,110 @@
 #include <unistd.h>
 #include "dataLink.h"
 
+int main(int argc, char **argv)
+{
 
-int main(int argc, char** argv){
-
-    if((argc < 2) || ((strcmp("/dev/ttyS10", argv[1])!=0) && (strcmp("/dev/ttyS11", argv[1])!=0) && (strcmp("/dev/ttyS0", argv[1])!=0) && (strcmp("/dev/ttyS1", argv[1])!=0))) {
-        printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
+    if ((argc < 3) || ((strcmp("/dev/ttyS10", argv[1]) != 0) && (strcmp("/dev/ttyS11", argv[1]) != 0) && (strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0)))
+    {
+        printf("Usage:\t./receiver <SerialPort> <filename>\n");
         exit(1);
     }
 
     int port;
-    if(strcmp("/dev/ttyS10", argv[1]) == 0) port = COM10;
-    if(strcmp("/dev/ttyS11", argv[1]) == 0) port = COM11;
-    if(strcmp("/dev/ttyS0", argv[1]) == 0) port = COM0;
-    if(strcmp("/dev/ttyS1", argv[1]) == 0) port = COM1;
+    if (strcmp("/dev/ttyS10", argv[1]) == 0)
+        port = COM10;
+    if (strcmp("/dev/ttyS11", argv[1]) == 0)
+        port = COM11;
+    if (strcmp("/dev/ttyS0", argv[1]) == 0)
+        port = COM0;
+    if (strcmp("/dev/ttyS1", argv[1]) == 0)
+        port = COM1;
 
     int fd = llopen(port, SENDER);
-    if(fd < 0){
+    if (fd < 0)
+    {
         printf("llopen failed\n");
         exit(1);
-    } else {
+    }
+    else
+    {
         printf("Connection established with success!\n");
     }
 
-    unsigned char* filename = "pinguim.gif";
-    
-    struct stat fileInfo;
-    stat(filename, &fileInfo);
+    unsigned char *filename = argv[2];
 
-    unsigned char* StartPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
-    if (StartPacket == NULL) {
+    struct stat fileInfo;
+    if(stat(filename, &fileInfo) < 0){
+        printf("stat failed!\n");
+        if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
+        return -1;
+    }
+
+    unsigned char *StartPacket = (unsigned char *)malloc(MAX_PACKET_SIZE);
+    if (StartPacket == NULL)
+    {
         printf("Could not allocate memory for StartPacket!\n");
-        if(llclose(fd, SENDER) < 0){
-            printf("llclose failed\n");
-            exit(1);
-        }
-        return 0;
+        if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
+        return -1;
     }
 
     int packet_size;
 
     packet_size = makeControlPacket(START_BYTE, fileInfo.st_size, filename, StartPacket);
 
-    if (llwrite(fd, StartPacket, packet_size) == -1) {
+    if (llwrite(fd, StartPacket, packet_size) == -1)
+    {
+        free(StartPacket);
         printf("Could not send Start Packet!\n");
-        if(llclose(fd, SENDER) < 0){
-            printf("llclose failed\n");
-            exit(1);
-        }
-        return 0;
+        if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
+        return -1;
     }
 
     int fdFile = open(filename, O_RDONLY);
-    if (fdFile == -1) {
+    if (fdFile == -1)
+    {
+        free(StartPacket);
         printf("Could not open file!\n");
-        if(llclose(fd, SENDER) < 0){
-            printf("llclose failed\n");
-            exit(1);
-        }
-        return 0;
+        if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
+        return -1;
     }
+
     int charactersRead;
     int sequenceN = 0;
 
-    unsigned char* fileBuffer = (unsigned char*)malloc(MAX_K);
-    if (fileBuffer == NULL) {
+    unsigned char *fileBuffer = (unsigned char *)malloc(MAX_K);
+    if (fileBuffer == NULL)
+    {
+        free(StartPacket);
         printf("Could not allocate memory for fileBuffer!\n");
-        if(llclose(fd, SENDER) < 0){
-            printf("llclose failed\n");
-            exit(1);
-        }
-        return 0;
+        if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
+        return -1;
     }
 
-    unsigned char* dataPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
-    if (dataPacket == NULL) {
+    unsigned char *dataPacket = (unsigned char *)malloc(MAX_PACKET_SIZE);
+    if (dataPacket == NULL)
+    {
+        free(StartPacket);
+        free(fileBuffer);
         printf("Could not allocate memory for dataPacket!\n");
-        if(llclose(fd, SENDER) < 0){
-            printf("llclose failed\n");
-            exit(1);
-        }
-        return 0;
+        if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
+        return -1;
     }
 
     int size = 0;
 
-    while (charactersRead = read(fdFile, fileBuffer, MAX_K)) {
+    while (charactersRead = read(fdFile, fileBuffer, MAX_K))
+    {
         packet_size = makeDataPacket(fileBuffer, sequenceN, dataPacket, charactersRead);
 
-        if (llwrite(fd, dataPacket, packet_size) == -1) {
+        if (llwrite(fd, dataPacket, packet_size) == -1)
+        {
+            free(StartPacket);
+            free(fileBuffer);
+            free(dataPacket);
             printf("Could not send Data Packet number %d\n", sequenceN);
-            if(llclose(fd, SENDER) < 0){
-                printf("llclose failed\n");
-                exit(1);
-            }
-            return 0;
+            if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
+            return -1;
         }
 
         sequenceN++;
@@ -111,30 +119,39 @@ int main(int argc, char** argv){
 
     close(fdFile);
 
-    unsigned char* EndPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
-    if (EndPacket == NULL) {
+    unsigned char *EndPacket = (unsigned char *)malloc(MAX_PACKET_SIZE);
+    if (EndPacket == NULL)
+    {
+        free(StartPacket);
+        free(fileBuffer);
+        free(dataPacket);
         printf("Could not allocate memory for EndPacket!\n");
-        if(llclose(fd, SENDER) < 0){
-            printf("llclose failed\n");
-            exit(1);
-        }
-        return 0;
-    }
-    
-    packet_size = makeControlPacket(END_BYTE, fileInfo.st_size, "pinguim.gif", EndPacket);
-
-    if (llwrite(fd, EndPacket, packet_size) == -1) {
-        printf("Could not send End Packet!");
-        if(llclose(fd, SENDER) < 0){
-            printf("llclose failed\n");
-            exit(1);
-        }
-        return 0;
+        if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
+        return -1;
     }
 
-    printf("SIZE: %d, \n", size, fileInfo.st_size);
+    packet_size = makeControlPacket(END_BYTE, fileInfo.st_size, filename, EndPacket);
 
-    if(llclose(fd, SENDER) < 0){
+    if (llwrite(fd, EndPacket, packet_size) == -1)
+    {
+        free(StartPacket);
+        free(fileBuffer);
+        free(dataPacket);
+        free(EndPacket);
+        printf("Could not send End Packet!\n");
+        if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
+        return -1;
+    }
+
+    printf("SIZE: %d, %ld\n", size, fileInfo.st_size);
+
+    free(StartPacket);
+    free(fileBuffer);
+    free(dataPacket);
+    free(EndPacket);
+
+    if (llclose(fd, SENDER) < 0)
+    {
         printf("llclose failed\n");
         exit(1);
     }

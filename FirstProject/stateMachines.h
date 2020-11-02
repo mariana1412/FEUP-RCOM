@@ -15,4 +15,3 @@ int changeStateAck(AckState *state, unsigned char byte);
 int getREJ();
 
 #endif /*STATEMACHINES_H*/
-

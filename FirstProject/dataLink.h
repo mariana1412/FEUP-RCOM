@@ -5,7 +5,7 @@
 
 #include "protocol.h"
 #include "port.h"
-
+#include <unistd.h>
 
 /**
  * Establishes a connection between devices, using a Stop and Wait mechanism.
@@ -26,7 +26,7 @@ int llopen(int port, int status);
  * 
  * @return the amount of bytes sent; -1 on error
  */
-int llwrite(int fd, char* buffer, int length);
+int llwrite(int fd, char *buffer, int length);
 
 /**
  * Receives an array of characters from the other device, using a Stop and Wait mechanism.
@@ -36,7 +36,7 @@ int llwrite(int fd, char* buffer, int length);
  * 
  * @return the amount of bytes received; -1 on error
  */
-int llread(int fd, char* buffer);
+int llread(int fd, char *buffer);
 
 /**
  * Closes the connection previously established, using a Stop and Wait mechanism.

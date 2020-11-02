@@ -180,8 +180,6 @@ int parseDataPacket(unsigned char *info, int size)
     {
         printf("index + K > size\n");
         return -1;
-    } else {
-
     }
 
     for (int i = 0; i < K; i++)
@@ -192,12 +190,51 @@ int parseDataPacket(unsigned char *info, int size)
     return 0;
 }
 
+int initFile(){
+
+    file = malloc(sizeof(File));
+
+    if(file == NULL) return -1;
+    
+    file->size = 0;
+    file->lastIndex = 0;
+
+    file->name = (unsigned char*)malloc(MAX_VALUE_SIZE);
+    if(file->name == NULL){ 
+        free(file);
+        return -1;
+    }
+
+    file->data = (unsigned char*)malloc(MAX_FILE_SIZE);
+    if(file->data == NULL){
+        free(file->name);
+        free(file);
+        return -1;
+    }
+
+    file->controlPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
+    if(file->controlPacket == NULL){
+        free(file->name);
+        free(file->data);
+        free(file);
+        return -1;
+    }
+
+    return 0;
+}
+
+void freeFile(){
+    free(file->data);
+    free(file->name);
+    free(file);
+}
+
 int main(int argc, char **argv)
 {
 
     if ((argc < 2) || ((strcmp("/dev/ttyS10", argv[1]) != 0) && (strcmp("/dev/ttyS11", argv[1]) != 0) && (strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0)))
     {
-        printf("Usage:\tnserial SerialPort\n\tex: nserial /dev/ttyS1\n");
+        printf("Usage:\t./sender <SerialPort>\n");
         exit(1);
     }
 
@@ -224,16 +261,23 @@ int main(int argc, char **argv)
 
     printf("finished llopen\n");
 
-    file = malloc(sizeof(File));
-    file->size = 0;
-    file->lastIndex = 0;
-    file->name = (unsigned char*)malloc(MAX_VALUE_SIZE);
-    file->data = (unsigned char*)malloc(MAX_FILE_SIZE);
-    file->controlPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
+    if (initFile() < 0){
+        printf("Could not allocate memory for file!\n");
+        if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
+        return -1;
+    }
 
     while (!finished)
     {
         unsigned char *info = (unsigned char *)malloc(MAX_PACKET_SIZE);
+
+        if(info == NULL){
+            freeFile();
+            printf("Could not allocate memory for info!\n");
+            if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
+            return -1;
+        }
+
         size = llread(fd, info);
 
         if (size < 0) break;
@@ -250,8 +294,12 @@ int main(int argc, char **argv)
         free(info);
     }
 
-    if (!finished)
+    if (!finished){
         printf("cycle interrupted!\n");
+        freeFile();
+        if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
+        return -1;
+    }
     else
     {
         printf("Received %d bytes and %d packets.\n", totalSize, packets);
@@ -264,42 +312,41 @@ int main(int argc, char **argv)
         int fileDescriptor = open(filename, O_RDWR | O_CREAT, 0777);
         if (fileDescriptor < 0)
         {
+            free(filename);
+            freeFile();
             printf("Error opening file!\n");
-            if (llclose(fd, RECEIVER) < 0)
-            {
-                printf("llclose failed\n");
-                exit(1);
-            }
+            if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
             return -1;
         }
 
         if (write(fileDescriptor, file->data, file->lastIndex) < 0)
         {
+            free(filename);
+            freeFile();
             printf("Error writing to file!\n");
-            if (llclose(fd, RECEIVER) < 0)
-            {
-                printf("llclose failed\n");
-                exit(1);
-            }
+            if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
             return -1;
         }
 
-        if (close(fd) < 0)
+        if (close(fileDescriptor) < 0)
         {
+            free(filename);
+            freeFile();
             printf("Error closing file!\n");
-            if (llclose(fd, RECEIVER) < 0)
-            {
-                printf("llclose failed\n");
-                exit(1);
-            }
+            if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
             return -1;
         }
+
+        free(filename);
     }
+
+    freeFile();
 
     if (llclose(fd, RECEIVER) < 0)
     {
         printf("llclose failed\n");
         exit(1);
     }
+    
     return 0;
 }
