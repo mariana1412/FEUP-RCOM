@@ -55,10 +55,7 @@ int llwrite(int fd, char* buffer, int length){
     int bytesSent;
     int response;
 
-    printf("%d length\n", length);
-
     for (int i = 0; i < 4; i++) {
-        printf("Sending Info\n");
         bytesSent = sendInfoFrame(fd, ns, buffer, length);
         if (bytesSent == -1) {
             printf("Could not send I Frame! Attempt number %d\n", i+1);
@@ -71,10 +68,9 @@ int llwrite(int fd, char* buffer, int length){
         alarm(3);
 
         while (alarmSender) {
-            response = receiveAckFrame(fd, ns);
+            response = receiveAckFrame(fd, 1-ns);
             if (response < 0) {
                 printf("Could not read ACK Frame!\n");
-                return -1;
             } else {
                 alarm(0);
                 break;
@@ -83,6 +79,7 @@ int llwrite(int fd, char* buffer, int length){
 
         if (alarmSender) {
             if (response == 0) {
+                printf("ACK Frame received with success!\n");
                 ns = 1-ns;
                 return bytesSent;
             } else if (i < 3) {
@@ -96,10 +93,8 @@ int llwrite(int fd, char* buffer, int length){
     return -1;
 }
 
-//buffer-> array de carateres recebidos
-int llread(int fd, char* buffer){ // retorna comprimento do array/nºcaracteres lidos
 
-    printf("llread!!!\n");
+int llread(int fd, char* buffer){
     int receive = receiveInfoFrame(fd, buffer);
 
     if(getREJ() || (receive < 0)){
@@ -111,7 +106,7 @@ int llread(int fd, char* buffer){ // retorna comprimento do array/nºcaracteres 
         sendAckFrame(fd, RR, 1-receive);
     }
     
-    return sizeof(buffer)/sizeof(buffer[0]); //confirmar isto
+    return IFRAME_SIZE;
 }
 
 int llclose(int fd, int status){

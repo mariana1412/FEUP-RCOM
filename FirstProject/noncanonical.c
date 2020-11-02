@@ -13,8 +13,7 @@
 static File *file;
 static int N = 0;
 
-int parseInfo(unsigned char *info, int size)
-{
+int parseInfo(unsigned char *info, int size) {
 
     unsigned char byte = info[0];
     printf("PARSE INFO %d!\n", byte);
@@ -39,7 +38,7 @@ int parseInfo(unsigned char *info, int size)
         printf("END_BYTE\n");
         if (checkControlPacket(info, size) < 0)
         {
-            printf("End Control Packet is not corret!\n");
+            printf("End Control Packet is not correct!\n");
             return -1;
         }
         return 1;
@@ -52,38 +51,47 @@ int parseInfo(unsigned char *info, int size)
     return 0;
 }
 
-int parseControlPacket(unsigned char *info, int size)
-{
-
+int parseControlPacket(unsigned char *info, int size) {
+    int i = 1;
+    int index = 0;
     int l, j;
 
     printf("parse control packet, size = %d\n", size);
 
-    for (int i = 1; i < size; i++)
+    while(i < size)
     {
-
-        if (info[i++] == FILESIZE)
-        {
+        printf("control packet byte: %d\n", info[i]);
+        if (info[i] == FILESIZE) {
+            file->controlPacket[index++] = info[i];
+            i++;
             printf("FILESIZE \n");
+            
+            file->controlPacket[index++] = info[i];
             l = info[i++];
             j = 0;
+
             while (j != l)
             {
                 printf("READING FILESIZE \n");
+                file->controlPacket[index++] = info[i];
                 file->size = file->size * 256 + info[i++];
 
                 j++;
             }
-        }
-        else if (info[i++] == FILENAME)
-        {
+        } else if (info[i] == FILENAME) {
+            file->controlPacket[index++] = info[i];
+            i++;
+
             printf("FILENAME \n");
+
+            file->controlPacket[index++] = info[i];
             l = info[i++];
             j = 0;
 
             while (j != l)
             {
                 printf("READING FILENAME \n");
+                file->controlPacket[index++] = info[i];
                 file->name[j++] = info[i++];
             }
             break;
@@ -94,22 +102,67 @@ int parseControlPacket(unsigned char *info, int size)
     return 0;
 }
 
-int checkControlPacket(unsigned char *info, int size)
-{
+int checkControlPacket(unsigned char *info, int size) {
+    int i = 1;
+    int index = 0;
+    int l, j, k = 0;
 
-    for (int i = 1; i < size; i++)
-    {
-        if (info[i] != file->controlPacket[i])
-            return -1;
+    unsigned char* temp = (unsigned char*)malloc(MAX_PACKET_SIZE);
+    if (temp == NULL) {
+        printf("Could not allocate memory for temp!\n");
+        return -1;
     }
 
-    printf("end -> control packet is correct!\n");
+    while(i < size)
+    {
+        if (info[i] == FILESIZE)
+        {
+            temp[k++] = info[i];
+            i++;
+
+            temp[k++] = info[i];
+            l = info[i++];
+            j = 0;
+
+            while (j != l)
+            {
+                temp[k++] = info[i++];
+
+                j++;
+            }
+        }
+        else if (info[i] == FILENAME)
+        {
+            temp[k++] = info[i];
+            i++;
+            
+            temp[k++] = info[i];
+            l = info[i++];
+            j = 0;
+
+            while (j != l)
+            {
+                temp[k++] = info[i++];
+                j++;
+            }
+            break;
+        }
+    }
+
+    while (index < k) {
+        if (file->controlPacket[index] != temp[index++]) {
+            free(temp);
+            return -1;
+        }
+    }
+
+    free(temp);
     return 0;
 }
 
 int parseDataPacket(unsigned char *info, int size)
 {
-    int index = 0;
+    int index = 1;
     unsigned char byte = info[index++];
 
     if (byte != N)
@@ -127,12 +180,16 @@ int parseDataPacket(unsigned char *info, int size)
     {
         printf("index + K > size\n");
         return -1;
+    } else {
+
     }
 
     for (int i = 0; i < K; i++)
     {
+        printf("on data: %d, index: %d\n", info[index], file->lastIndex);
         file->data[file->lastIndex++] = info[index++];
     }
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -161,7 +218,8 @@ int main(int argc, char **argv)
         exit(1);
     }
 
-    int size, totalSize, packets;
+    int size, totalSize = 0;
+    int packets = 0;
     int finished = FALSE;
 
     printf("finished llopen\n");
@@ -169,8 +227,8 @@ int main(int argc, char **argv)
     file = malloc(sizeof(File));
     file->size = 0;
     file->lastIndex = 0;
-    file->name = (unsigned char*)malloc(MAX_PACKET_SIZE); //ver isto
-    file->data = (unsigned char*)malloc(IFRAME_SIZE); //ver isto
+    file->name = (unsigned char*)malloc(MAX_VALUE_SIZE);
+    file->data = (unsigned char*)malloc(MAX_FILE_SIZE);
     file->controlPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
 
     while (!finished)
@@ -178,8 +236,7 @@ int main(int argc, char **argv)
         unsigned char *info = (unsigned char *)malloc(MAX_PACKET_SIZE);
         size = llread(fd, info);
 
-        if (size < 0)
-            break;
+        if (size < 0) break;
         totalSize += size;
 
         int result = parseInfo(info, size);
@@ -199,22 +256,42 @@ int main(int argc, char **argv)
     {
         printf("Received %d bytes and %d packets.\n", totalSize, packets);
 
-        int fileDescriptor = open(file->name, O_RDWR | O_CREAT, 0777);
+        printf("%d\n", file->lastIndex);
+
+        char* filename = (char*)malloc(13);
+        sprintf(filename, "2%s", file->name);
+
+        int fileDescriptor = open(filename, O_RDWR | O_CREAT, 0777);
         if (fileDescriptor < 0)
         {
             printf("Error opening file!\n");
+            if (llclose(fd, RECEIVER) < 0)
+            {
+                printf("llclose failed\n");
+                exit(1);
+            }
             return -1;
         }
 
-        if (write(fileDescriptor, file->data, file->size) < 0)
+        if (write(fileDescriptor, file->data, file->lastIndex) < 0)
         {
             printf("Error writing to file!\n");
+            if (llclose(fd, RECEIVER) < 0)
+            {
+                printf("llclose failed\n");
+                exit(1);
+            }
             return -1;
         }
 
         if (close(fd) < 0)
         {
             printf("Error closing file!\n");
+            if (llclose(fd, RECEIVER) < 0)
+            {
+                printf("llclose failed\n");
+                exit(1);
+            }
             return -1;
         }
     }
@@ -224,6 +301,5 @@ int main(int argc, char **argv)
         printf("llclose failed\n");
         exit(1);
     }
-
     return 0;
 }

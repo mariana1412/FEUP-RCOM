@@ -2,6 +2,8 @@
 
 int alarmSender = 1;
 
+int overallIndex = 0;
+
 void alarmHandler(){
     alarmSender = 0; 
     return;  
@@ -12,10 +14,10 @@ int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive) {
 
     for(int i = 0; i < 4; i++){
         if(sendOpenCloseFrame(fd, send, SEND_REC) == -1){
-            printf("Could not send Frame!\n");
+            printf("Could not send Frame! Attempt number %d\n", i+1);
             return -1;
         } else {
-            printf("Sent Frame!\n");
+            printf("Sent Frame with success! Attempt number %d\n", i+1);
         }
 
         alarmSender = 1;
@@ -126,7 +128,7 @@ int receiveAckFrame(int fd, int ns) {
 
     AckState state = START_ACK;
 
-    while (state != STOP_ACK && alarmSender == 1) {       
+    while (state != STOP_ACK && alarmSender == 1) {  
         res = read(fd, buf, 1);   
         if(res == 0) continue;
         if(res < 0) return -1;
@@ -147,10 +149,19 @@ int receiveAckFrame(int fd, int ns) {
     return acknowledged;
 }
 
-int sendInfoFrame(int fd, int ns, char* info, int length) {
+int sendInfoFrame(int fd, int ns, unsigned char* info, int length) {
     int res, index = 0;
-    unsigned char* infoFrame;
     unsigned char bcc2 = 0x00;
+    
+    unsigned char* infoFrame = (unsigned char*)malloc(IFRAME_SIZE);
+    if (infoFrame == NULL) {
+        printf("Could not allocate memory for infoFrame!\n");
+        if(llclose(fd, SENDER) < 0){
+            printf("llclose failed\n");
+            exit(1);
+        }
+        return 0;
+    }
 
     infoFrame[index++] = FLAG;
     infoFrame[index++] = SEND_REC;
@@ -159,12 +170,13 @@ int sendInfoFrame(int fd, int ns, char* info, int length) {
     infoFrame[index++] = SEND_REC ^ NS(ns);
 
     for (int i = 0; i < length; i++) {
-        printf("%d\n", info[i]);
         bcc2 = bcc2 ^ info[i];
         if (info[i] == FLAG || info[i] == ESCAPE) {
             infoFrame[index++] = ESCAPE;
+            infoFrame[index++] = info[i] ^ STUFF_BYTE;
+        } else {
+            infoFrame[index++] = info[i];
         }
-        infoFrame[index++] = info[i];
     }
 
     while(index < (IFRAME_SIZE - 2)) {
@@ -178,8 +190,6 @@ int sendInfoFrame(int fd, int ns, char* info, int length) {
 
     if(res < 1) return -1;
 
-    printf("I Frame sent! %d bytes written\n", res);
-
     return 0;
 }
 
@@ -189,6 +199,7 @@ int receiveInfoFrame(int fd, unsigned char* info) {
     int i = 0;
     int ns = -1;
     int firstTime = TRUE;
+    int escaped = FALSE;
 
     State state = START;
 
@@ -204,10 +215,22 @@ int receiveInfoFrame(int fd, unsigned char* info) {
         if(aux != -1 ) ns = aux;
 
         if (state == DATA) {
-            if(firstTime) firstTime = FALSE;
+            if (firstTime) firstTime = FALSE;
             else {
-                printf("DATA %d\n", buf[0]);
-                info[i++] = buf[0];
+                if (escaped) {
+                    if (buf[0] == (FLAG ^ STUFF_BYTE)){
+                        info[i++] = FLAG;
+                    } else if (buf[0] == (ESCAPE ^ STUFF_BYTE)){
+                        info[i++] = ESCAPE;
+                    }
+                    escaped = FALSE;
+                } else if (buf[0] == ESCAPE) {
+                    escaped = TRUE;
+                } else if (i < 509) {
+                    printf("put in info: %d\n", buf[0]);
+                    printf("i: %d\n", i);
+                    info[i++] = buf[0];
+                }
             }
         }
     }
@@ -215,52 +238,44 @@ int receiveInfoFrame(int fd, unsigned char* info) {
     return ns;    
 }
 
-int makeControlPacket(unsigned char control, int fileSize, char* fileName, unsigned char* packet) {
+int makeControlPacket(unsigned char control, int fileSize, unsigned char* fileName, unsigned char* packet) {
     int index = 0;
     
     packet[index++] = control;
-    printf("%d\n", packet[index-1]);
 
     packet[index++] = FILESIZE;
-    printf("%d\n", packet[index-1]);
-    packet[index++] = sizeof(int);
-    printf("%d\n", packet[index-1]);
+    packet[index++] = 0x08;
     
-    unsigned char* n;
+    unsigned char* n = (unsigned char*)malloc(8);
     sprintf(n, "%d", fileSize);
 
     for (int i = 0; i < sizeof(n); i++) {
         packet[index++] = n[i];
-        printf("%d\n", packet[index-1]);
     }
 
     packet[index++] = FILENAME;
-    printf("%d\n", packet[index-1]);
-    packet[index++] = sizeof(fileName);
-    printf("%d\n", packet[index-1]);
+    packet[index++] = strlen(fileName);
     
-    for (int j = 0; j < packet[index -1]; j++) {
+    for (int j = 0; j < strlen(fileName); j++) {
         packet[index++] = fileName[j];
-        printf("%c\n", packet[index-1]);
     }
 
     return index;
 }
 
-void makeDataPacket(char *info, int N, unsigned char* packet){
+int makeDataPacket(unsigned char *info, int N, unsigned char* packet, int length){
     int index = 0;
 
     packet[index++] = DATA_BYTE;
     packet[index++] = N;
 
-    int length = strlen(info);
-
     packet[index++] = length/256;
     packet[index++] = length%256;
 
     for(int i = 0; i < length; i++){
+        printf("byte: %d, index: %d\n", info[i], overallIndex++);
         packet[index++] = info[i];
     }
 
-    return;
+    return index;
 }

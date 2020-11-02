@@ -4,7 +4,7 @@ static struct termios oldtioReceiver, oldtioSender;
 
 int initPort(int portInt, int vtime, int vmin, int status){
     
-    char* port = (char *)malloc(11);
+    char* port = (char *)malloc(12);
     if (port == NULL) {
         printf("Could not allocate memory for port!\n");
         return -1;

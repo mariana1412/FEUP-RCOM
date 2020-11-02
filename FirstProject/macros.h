@@ -9,6 +9,7 @@
 #define _XOPEN_SOURCE   700
 #define FALSE           0
 #define TRUE            1
+#define MAX_FILE_SIZE   65535
 
 //PORTS
 #define COM0            0    
@@ -38,13 +39,15 @@
 #define DATA_MAX_SIZE   (IFRAME_SIZE - 6)
 #define NS(S)           ((S == 0) ?  0x00 : 0x40)
 #define ESCAPE          0x7D
+#define STUFF_BYTE      0x20
 
 //Packet
 #define MAX_PACKET_SIZE (DATA_MAX_SIZE / 2)
 #define MAX_K           (MAX_PACKET_SIZE - 4)
+#define MAX_VALUE_SIZE  255
 
-#define FILESIZE        0
-#define FILENAME        1
+#define FILESIZE        0x00
+#define FILENAME        0x01
 
 #define DATA_BYTE       0x01
 #define START_BYTE      0x02

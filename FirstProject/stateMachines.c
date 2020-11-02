@@ -135,16 +135,19 @@ int changeStateInfo(State *state, unsigned char byte, int fd) {
         break;
 
     case A_RCV:
-        if(byte == NS(s) || (byte == NS(++s))){
+        if(byte == NS(s)){
             printf("state = a_rcv -> c_rcv!!! s = %d, ns = %d\n", s, NS(s));
             *state = C_RCV;
             return s;
-        }  
-        else if(byte == FLAG){
+        } else if (byte == NS(1-s)){
+            printf("state = a_rcv -> c_rcv!!! s = %d, ns = %d\n", s, NS(s));
+            *state = C_RCV;
+            s = 1-s;
+            return s;
+        } else if(byte == FLAG){
             printf("state = a_rcv -> flag!!! \n");
             *state = FLAG_RCV;
-        }
-        else {
+        } else {
             printf("state = a_rcv -> else!!! \n");
             *state = START;
         }
@@ -155,6 +158,7 @@ int changeStateInfo(State *state, unsigned char byte, int fd) {
         if(byte == SEND_REC ^ NS(s)){
             printf("state = c_rcv -> bcc_ok !!! s = %d, ns = %d\n", s, NS(s));
             dataIndex = 0;
+            bcc2Check = 0x00;
             *state = DATA;
         }  
         else if(byte == FLAG){
@@ -170,7 +174,11 @@ int changeStateInfo(State *state, unsigned char byte, int fd) {
         dataIndex++;
         if (dataIndex < DATA_MAX_SIZE) {
             if (escaped) {
-                bcc2Check = bcc2Check ^ byte;
+                if (byte == (FLAG ^ STUFF_BYTE)){
+                    bcc2Check = bcc2Check ^ FLAG;
+                } else if (byte == (ESCAPE ^ STUFF_BYTE)){
+                    bcc2Check = bcc2Check ^ ESCAPE;
+                }
                 escaped = FALSE;
             } else if (byte == FLAG) {
                 printf("state = data -> flag!!! \n");
@@ -186,6 +194,7 @@ int changeStateInfo(State *state, unsigned char byte, int fd) {
         }
         break;
     case C2_RCV:
+        printf("bcc2 check: %d\n", bcc2Check);
         if (byte == bcc2Check) {
             printf("state = c2_rcv -> bcc2_ok!!! \n");
             rej == FALSE;
@@ -195,7 +204,7 @@ int changeStateInfo(State *state, unsigned char byte, int fd) {
             *state = FLAG;
         }
         else {
-            printf("state = c2_rcv -> flag!!! \n");
+            printf("state = c2_rcv -> start!!! \n");
             rej = TRUE;
             *state = START;
         }

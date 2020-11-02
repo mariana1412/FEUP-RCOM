@@ -15,4 +15,4 @@ receiver:
 	$(CC) -g -std=gnu99 -o receiver $(RECEIVER) $(AUX)
 
 clean:
-	rm -f sender receiver
+	rm -f sender receiver 2pinguim.gif

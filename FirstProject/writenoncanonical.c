@@ -30,17 +30,25 @@ int main(int argc, char** argv){
     } else {
         printf("Connection established with success!\n");
     }
+
+    unsigned char* filename = "pinguim.gif";
     
     struct stat fileInfo;
-    stat("pinguim.gif", &fileInfo);
+    stat(filename, &fileInfo);
 
     unsigned char* StartPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
     if (StartPacket == NULL) {
         printf("Could not allocate memory for StartPacket!\n");
-        llclose(fd, SENDER);
+        if(llclose(fd, SENDER) < 0){
+            printf("llclose failed\n");
+            exit(1);
+        }
+        return 0;
     }
 
-    int packet_size = makeControlPacket(START_BYTE, fileInfo.st_size, "pinguim.gif", StartPacket);
+    int packet_size;
+
+    packet_size = makeControlPacket(START_BYTE, fileInfo.st_size, filename, StartPacket);
 
     if (llwrite(fd, StartPacket, packet_size) == -1) {
         printf("Could not send Start Packet!\n");
@@ -48,13 +56,17 @@ int main(int argc, char** argv){
             printf("llclose failed\n");
             exit(1);
         }
+        return 0;
     }
-    printf("llwrite Start Packet\n");
 
-    int fdFile = open("pinguim.gif", O_RDONLY);
+    int fdFile = open(filename, O_RDONLY);
     if (fdFile == -1) {
         printf("Could not open file!\n");
-        llclose(fd, SENDER);
+        if(llclose(fd, SENDER) < 0){
+            printf("llclose failed\n");
+            exit(1);
+        }
+        return 0;
     }
     int charactersRead;
     int sequenceN = 0;
@@ -62,33 +74,51 @@ int main(int argc, char** argv){
     unsigned char* fileBuffer = (unsigned char*)malloc(MAX_K);
     if (fileBuffer == NULL) {
         printf("Could not allocate memory for fileBuffer!\n");
-        llclose(fd, SENDER);
+        if(llclose(fd, SENDER) < 0){
+            printf("llclose failed\n");
+            exit(1);
+        }
+        return 0;
     }
 
     unsigned char* dataPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
     if (dataPacket == NULL) {
         printf("Could not allocate memory for dataPacket!\n");
-        llclose(fd, SENDER);
+        if(llclose(fd, SENDER) < 0){
+            printf("llclose failed\n");
+            exit(1);
+        }
+        return 0;
     }
 
-    while (charactersRead = read(fdFile, fileBuffer, MAX_K)) {
-        makeDataPacket(fileBuffer, sequenceN, dataPacket);
+    int size = 0;
 
-        if (llwrite(fd, dataPacket, strlen(dataPacket)) == -1) {
-            printf("Could not send Data Packet number %d", sequenceN);
+    while (charactersRead = read(fdFile, fileBuffer, MAX_K)) {
+        packet_size = makeDataPacket(fileBuffer, sequenceN, dataPacket, charactersRead);
+
+        if (llwrite(fd, dataPacket, packet_size) == -1) {
+            printf("Could not send Data Packet number %d\n", sequenceN);
             if(llclose(fd, SENDER) < 0){
                 printf("llclose failed\n");
                 exit(1);
             }
+            return 0;
         }
 
         sequenceN++;
+        size += charactersRead;
     }
+
+    close(fdFile);
 
     unsigned char* EndPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
     if (EndPacket == NULL) {
         printf("Could not allocate memory for EndPacket!\n");
-        llclose(fd, SENDER);
+        if(llclose(fd, SENDER) < 0){
+            printf("llclose failed\n");
+            exit(1);
+        }
+        return 0;
     }
     
     packet_size = makeControlPacket(END_BYTE, fileInfo.st_size, "pinguim.gif", EndPacket);
@@ -99,7 +129,10 @@ int main(int argc, char** argv){
             printf("llclose failed\n");
             exit(1);
         }
+        return 0;
     }
+
+    printf("SIZE: %d, \n", size, fileInfo.st_size);
 
     if(llclose(fd, SENDER) < 0){
         printf("llclose failed\n");
