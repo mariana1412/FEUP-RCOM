@@ -276,7 +276,7 @@ int main(int argc, char **argv)
 
         size = llread(fd, info);
 
-        if (size < 0) break;
+        if (size < 0) continue;
         totalSize += size;
 
         int result = parseInfo(info, size);

@@ -30,7 +30,9 @@ typedef enum State
     DATA,
     C2_RCV,
     BCC2_OK,
-    STOP
+    STOP,
+    IGNORE,
+    REJECTED
 } State;
 
 typedef enum AckState

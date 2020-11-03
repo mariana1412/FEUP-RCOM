@@ -2,7 +2,6 @@
 
 int alarmSender = 1;
 
-int overallIndex = 0;
 
 void alarmHandler()
 {
@@ -10,13 +9,13 @@ void alarmHandler()
     return;
 }
 
-int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive)
+int SandWOpenClose(int fd, ControlCommand send, char sendAddress, ControlCommand receive, char recAddress)
 {
     int rec;
 
     for (int i = 0; i < 4; i++)
     {
-        if (sendOpenCloseFrame(fd, send, SEND_REC) == -1)
+        if (sendOpenCloseFrame(fd, send, sendAddress) == -1)
         {
             printf("Could not send Frame! Attempt number %d\n", i + 1);
             return -1;
@@ -31,7 +30,7 @@ int SandWOpenClose(int fd, ControlCommand send, ControlCommand receive)
 
         while (alarmSender)
         {
-            rec = receiveOpenCloseFrame(fd, receive, SEND_REC);
+            rec = receiveOpenCloseFrame(fd, receive, recAddress);
             if (rec == 0)
             {
                 alarm(0);
@@ -228,34 +227,34 @@ int sendInfoFrame(int fd, int ns, unsigned char *info, int length)
     return 0;
 }
 
-int receiveInfoFrame(int fd, unsigned char *info)
+int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
 {
     unsigned char buf[255];
     int res;
     int i = 0;
-    int ns = -1;
     int firstTime = TRUE;
     int escaped = FALSE;
+    int duplicated = FALSE;
 
     State state = START;
 
-    while (state != STOP)
-    {
+    while (state != STOP && state != IGNORE && state != REJECTED) {
         res = read(fd, buf, 1);
 
-        if (res == 0)
-            continue;
-        if (res < 0)
-            return -1;
+        if (res == 0) continue;
+        if (res < 0) return -1;
 
         int aux = changeStateInfo(&state, buf[0], fd);
-        if (aux != -1)
-            ns = aux;
+        if (aux != -1) {
+            if (aux != expectedNS) duplicated = TRUE;
+        }
 
         if (state == DATA)
         {
-            if (firstTime)
+            if (firstTime) {
+                if (duplicated) break;
                 firstTime = FALSE;
+            }
             else
             {
                 if (escaped)
@@ -282,7 +281,9 @@ int receiveInfoFrame(int fd, unsigned char *info)
         }
     }
 
-    return ns;
+    if (state == IGNORE) return -1;
+    else if (state == REJECTED) return 1;
+    else return 0;
 }
 
 int makeControlPacket(unsigned char control, long int fileSize, unsigned char *fileName, unsigned char *packet)

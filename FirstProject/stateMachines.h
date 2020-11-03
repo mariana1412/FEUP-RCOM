@@ -12,6 +12,5 @@ int changeStateInfo(State *state, unsigned char byte, int fd);
 
 int changeStateAck(AckState *state, unsigned char byte);
 
-int getREJ();
 
 #endif /*STATEMACHINES_H*/

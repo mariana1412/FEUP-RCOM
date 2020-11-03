@@ -4,7 +4,6 @@ unsigned char bcc2Check = 0x00;
 unsigned char answer;
 static int escaped = FALSE;
 static int s = 0;
-static int rej = FALSE;
 static int dataIndex = 0;
 
 int changeStateS(State *state, unsigned char byte, ControlCommand command, unsigned char address)
@@ -69,8 +68,7 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command, unsig
     case C_RCV:
         isCorrect = FALSE;
 
-        switch (command)
-        {
+        switch (command) {
         case SET:
             if (byte == (address ^ SET_COMMAND))
                 isCorrect = TRUE;
@@ -172,7 +170,7 @@ int changeStateInfo(State *state, unsigned char byte, int fd)
         }
         else
         {
-            *state = START;
+            *state = IGNORE;
         }
         break;
     case DATA:
@@ -213,7 +211,6 @@ int changeStateInfo(State *state, unsigned char byte, int fd)
 
         if (byte == bcc2Check)
         {
-            rej == FALSE;
             *state = BCC2_OK;
         }
         else if (byte == FLAG)
@@ -222,8 +219,7 @@ int changeStateInfo(State *state, unsigned char byte, int fd)
         }
         else
         {
-            rej = TRUE;
-            *state = START;
+            *state = REJECTED;
         }
         break;
     case BCC2_OK:
@@ -249,8 +245,7 @@ int changeStateAck(AckState *state, unsigned char byte)
     switch (*state)
     {
     case START_ACK:
-        if (byte == FLAG)
-        {
+        if (byte == FLAG) {
             *state = FLAG_ACK;
         }
         break;
@@ -333,9 +328,4 @@ int changeStateAck(AckState *state, unsigned char byte)
         break;
     }
     return nr;
-}
-
-int getREJ()
-{
-    return rej;
 }
