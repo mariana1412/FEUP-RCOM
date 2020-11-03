@@ -132,12 +132,7 @@ int receiveOpenCloseFrame(int fd, ControlCommand command, int address)
         if (res == 0)
             continue;
         if (res < 0)
-        {
-            perror("-----------> ");
             return -1;
-        }
-
-        printf("%d\n", buf[0]);
 
         changeStateS(&state, buf[0], command, address);
     }
@@ -161,8 +156,6 @@ int receiveAckFrame(int fd, int ns)
             continue;
         if (res < 0)
             return -1;
-
-        printf("%d\n", buf[0]);
 
         nr = changeStateAck(&state, buf[0]);
 
@@ -255,8 +248,6 @@ int receiveInfoFrame(int fd, unsigned char *info)
         if (res < 0)
             return -1;
 
-        printf("%d\n", buf[0]);
-
         int aux = changeStateInfo(&state, buf[0], fd);
         if (aux != -1)
             ns = aux;
@@ -285,8 +276,6 @@ int receiveInfoFrame(int fd, unsigned char *info)
                 }
                 else if (i < 509)
                 {
-                    printf("put in info: %d\n", buf[0]);
-                    printf("i: %d\n", i);
                     info[i++] = buf[0];
                 }
             }
@@ -296,19 +285,20 @@ int receiveInfoFrame(int fd, unsigned char *info)
     return ns;
 }
 
-int makeControlPacket(unsigned char control, int fileSize, unsigned char *fileName, unsigned char *packet)
+int makeControlPacket(unsigned char control, long int fileSize, unsigned char *fileName, unsigned char *packet)
 {
     int index = 0;
 
     packet[index++] = control;
 
     packet[index++] = FILESIZE;
-    packet[index++] = 0x08;
 
     unsigned char *n = (unsigned char *)malloc(8);
-    sprintf(n, "%d", fileSize);
+    sprintf(n, "%ld", fileSize);
 
-    for (int i = 0; i < sizeof(n); i++)
+    packet[index++] = strlen(n);
+
+    for (int i = 0; i < packet[2]; i++)
     {
         packet[index++] = n[i];
     }
@@ -336,7 +326,6 @@ int makeDataPacket(unsigned char *info, int N, unsigned char *packet, int length
 
     for (int i = 0; i < length; i++)
     {
-        printf("byte: %d, index: %d\n", info[i], overallIndex++);
         packet[index++] = info[i];
     }
 

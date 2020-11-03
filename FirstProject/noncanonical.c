@@ -13,31 +13,36 @@
 static File *file;
 static int N = 0;
 
+void freeFile(){
+    free(file->data);
+    free(file->name);
+    free(file);
+}
+
 int parseInfo(unsigned char *info, int size) {
 
     unsigned char byte = info[0];
-    printf("PARSE INFO %d!\n", byte);
 
     switch (byte)
     {
     case START_BYTE:
-        printf("START_BYTE\n");
-        if (parseControlPacket(info, size) < 0)
-            return -1;
-        file->controlPacket = ++info; //confirmar
+        if (parseControlPacket(info, size) < 0) return -1;
+        file->controlPacket = ++info; 
         break;
 
     case DATA_BYTE:
-        printf("DATA_BYTE\n");
-        if (parseDataPacket(info, size) < 0)
+        if (parseDataPacket(info, size) < 0){
+            freeFile();
             return -1;
+        }
         N++;
+        N %= 255;
         break;
 
     case END_BYTE:
-        printf("END_BYTE\n");
         if (checkControlPacket(info, size) < 0)
         {
+            freeFile();
             printf("End Control Packet is not correct!\n");
             return -1;
         }
@@ -56,33 +61,32 @@ int parseControlPacket(unsigned char *info, int size) {
     int index = 0;
     int l, j;
 
-    printf("parse control packet, size = %d\n", size);
-
     while(i < size)
     {
-        printf("control packet byte: %d\n", info[i]);
         if (info[i] == FILESIZE) {
-            file->controlPacket[index++] = info[i];
-            i++;
-            printf("FILESIZE \n");
+            file->controlPacket[index++] = info[i++];
             
             file->controlPacket[index++] = info[i];
             l = info[i++];
             j = 0;
+            unsigned char* size = (unsigned char*)malloc(l);
+            if(size == NULL){
+                printf("Could not allocate memory for size!\n");
+                free(file->name);
+                free(file);
+                return -1;
+            }
 
             while (j != l)
             {
-                printf("READING FILESIZE \n");
                 file->controlPacket[index++] = info[i];
-                file->size = file->size * 256 + info[i++];
-
+                size[j] = info[i++];
                 j++;
             }
-        } else if (info[i] == FILENAME) {
-            file->controlPacket[index++] = info[i];
-            i++;
+            file->size = atoi(size);
 
-            printf("FILENAME \n");
+        } else if (info[i] == FILENAME) {
+            file->controlPacket[index++] = info[i++];
 
             file->controlPacket[index++] = info[i];
             l = info[i++];
@@ -90,15 +94,22 @@ int parseControlPacket(unsigned char *info, int size) {
 
             while (j != l)
             {
-                printf("READING FILENAME \n");
                 file->controlPacket[index++] = info[i];
                 file->name[j++] = info[i++];
             }
             break;
         }
     }
+    printf("file->size = %ld\n", file->size);
+    long int dataSize = file->size;
+    file->data = (unsigned char*)malloc(file->size);
+    if(file->data == NULL){
+        printf("Could not allocate memory for file->data!\n");
+        free(file->name);
+        free(file);
+        return -1;
+    }
 
-    printf("start -> control packet is correct!\n");
     return 0;
 }
 
@@ -167,7 +178,7 @@ int parseDataPacket(unsigned char *info, int size)
 
     if (byte != N)
     {
-        printf("N is not right!\n");
+        printf("Sequence number of data packet is not correct!\n");
         return -1;
     }
 
@@ -184,7 +195,6 @@ int parseDataPacket(unsigned char *info, int size)
 
     for (int i = 0; i < K; i++)
     {
-        printf("on data: %d, index: %d\n", info[index], file->lastIndex);
         file->data[file->lastIndex++] = info[index++];
     }
     return 0;
@@ -205,13 +215,6 @@ int initFile(){
         return -1;
     }
 
-    file->data = (unsigned char*)malloc(MAX_FILE_SIZE);
-    if(file->data == NULL){
-        free(file->name);
-        free(file);
-        return -1;
-    }
-
     file->controlPacket = (unsigned char*)malloc(MAX_PACKET_SIZE);
     if(file->controlPacket == NULL){
         free(file->name);
@@ -223,16 +226,10 @@ int initFile(){
     return 0;
 }
 
-void freeFile(){
-    free(file->data);
-    free(file->name);
-    free(file);
-}
-
 int main(int argc, char **argv)
 {
 
-    if ((argc < 2) || ((strcmp("/dev/ttyS10", argv[1]) != 0) && (strcmp("/dev/ttyS11", argv[1]) != 0) && (strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0)))
+    if ((argc != 2) || ((strcmp("/dev/ttyS10", argv[1]) != 0) && (strcmp("/dev/ttyS11", argv[1]) != 0) && (strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0)))
     {
         printf("Usage:\t./sender <SerialPort>\n");
         exit(1);
@@ -259,8 +256,6 @@ int main(int argc, char **argv)
     int packets = 0;
     int finished = FALSE;
 
-    printf("finished llopen\n");
-
     if (initFile() < 0){
         printf("Could not allocate memory for file!\n");
         if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
@@ -272,7 +267,8 @@ int main(int argc, char **argv)
         unsigned char *info = (unsigned char *)malloc(MAX_PACKET_SIZE);
 
         if(info == NULL){
-            freeFile();
+            free(file->name);
+            free(file);
             printf("Could not allocate memory for info!\n");
             if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
             return -1;
@@ -296,7 +292,6 @@ int main(int argc, char **argv)
 
     if (!finished){
         printf("cycle interrupted!\n");
-        freeFile();
         if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
         return -1;
     }
@@ -307,7 +302,7 @@ int main(int argc, char **argv)
         printf("%d\n", file->lastIndex);
 
         char* filename = (char*)malloc(13);
-        sprintf(filename, "2%s", file->name);
+        sprintf(filename, "./imagesToReceive/%s", file->name);
 
         int fileDescriptor = open(filename, O_RDWR | O_CREAT, 0777);
         if (fileDescriptor < 0)
@@ -319,7 +314,7 @@ int main(int argc, char **argv)
             return -1;
         }
 
-        if (write(fileDescriptor, file->data, file->lastIndex) < 0)
+        if (write(fileDescriptor, file->data, file->size) < 0)
         {
             free(filename);
             freeFile();

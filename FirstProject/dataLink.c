@@ -124,12 +124,12 @@ int llread(int fd, char *buffer)
 
     if (getREJ() || (receive < 0))
     {
-        printf("send rej message\n");
+        printf("Sent rej message!\n");
         sendAckFrame(fd, REJ, receive);
     }
     else
     {
-        printf("send rr message!\n");
+        printf("Sent rr message!\n");
         sendAckFrame(fd, RR, 1 - receive);
     }
 
@@ -138,8 +138,6 @@ int llread(int fd, char *buffer)
 
 int llclose(int fd, int status)
 {
-    printf("------- llclose -------\n");
-
     struct sigaction newAction, oldAction;
 
     newAction.sa_handler = alarmHandler;

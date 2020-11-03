@@ -10,9 +10,9 @@
 int main(int argc, char **argv)
 {
 
-    if ((argc < 3) || ((strcmp("/dev/ttyS10", argv[1]) != 0) && (strcmp("/dev/ttyS11", argv[1]) != 0) && (strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0)))
+    if ((argc != 3) || ((strcmp("/dev/ttyS10", argv[1]) != 0) && (strcmp("/dev/ttyS11", argv[1]) != 0) && (strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0)))
     {
-        printf("Usage:\t./receiver <SerialPort> <filename>\n");
+        printf("Usage:\t./sender <SerialPort> <path>\n");
         exit(1);
     }
 
@@ -37,10 +37,11 @@ int main(int argc, char **argv)
         printf("Connection established with success!\n");
     }
 
-    unsigned char *filename = argv[2];
+
+    unsigned char *path = argv[2];
 
     struct stat fileInfo;
-    if(stat(filename, &fileInfo) < 0){
+    if(stat(path, &fileInfo) < 0){
         printf("stat failed!\n");
         if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
         return -1;
@@ -56,6 +57,8 @@ int main(int argc, char **argv)
 
     int packet_size;
 
+    unsigned char *filename = strrchr(path, '/');
+
     packet_size = makeControlPacket(START_BYTE, fileInfo.st_size, filename, StartPacket);
 
     if (llwrite(fd, StartPacket, packet_size) == -1)
@@ -66,7 +69,7 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    int fdFile = open(filename, O_RDONLY);
+    int fdFile = open(path, O_RDONLY);
     if (fdFile == -1)
     {
         free(StartPacket);
@@ -76,7 +79,7 @@ int main(int argc, char **argv)
     }
 
     int charactersRead;
-    int sequenceN = 0;
+    long int sequenceN = 0;
 
     unsigned char *fileBuffer = (unsigned char *)malloc(MAX_K);
     if (fileBuffer == NULL)
@@ -114,6 +117,7 @@ int main(int argc, char **argv)
         }
 
         sequenceN++;
+        sequenceN %= 255;
         size += charactersRead;
     }
 

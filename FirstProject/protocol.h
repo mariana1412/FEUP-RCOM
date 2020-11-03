@@ -39,7 +39,7 @@ int sendInfoFrame(int fd, int ns, unsigned char *info, int length);
 
 int receiveInfoFrame(int fd, unsigned char *info);
 
-int makeControlPacket(unsigned char control, int fileSize, unsigned char *fileName, unsigned char *packet);
+int makeControlPacket(unsigned char control, long int fileSize, unsigned char *fileName, unsigned char *packet);
 
 int makeDataPacket(unsigned char *info, int N, unsigned char *packet, int length);
 
