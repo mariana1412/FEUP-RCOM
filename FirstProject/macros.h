@@ -9,7 +9,7 @@
 #define _XOPEN_SOURCE   700
 #define FALSE           0
 #define TRUE            1
-#define MAX_FILE_SIZE   65535
+#define ATTEMPTS        4
 
 //PORTS
 #define COM0            0    
@@ -35,7 +35,7 @@
 #define REJ_ANSWER(R)   ((R == 0) ?  0x01 : 0x81)
 
 //I Frames
-#define IFRAME_SIZE     1024
+#define IFRAME_SIZE     4096
 #define DATA_MAX_SIZE   (IFRAME_SIZE - 6)
 #define NS(S)           ((S == 0) ?  0x00 : 0x40)
 #define ESCAPE          0x7D

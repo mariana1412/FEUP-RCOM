@@ -58,6 +58,7 @@ int initPort(int portInt, int vtime, int vmin, int status)
 
     printf("New termios structure set\n");
 
+    free(port);
     return fd;
 }
 

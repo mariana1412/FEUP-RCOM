@@ -4,6 +4,7 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <time.h>
 #include <string.h>
 #include <unistd.h>
 #include "macros.h"
@@ -11,11 +12,18 @@
 #include "stateMachines.h"
 
 extern int alarmSender;
+extern int alarmReceiver;
 
 /**
  * Catches a specific signal and the value of alarmSender becomes 0 
 */
-void alarmHandler();
+void alarmSenderHandler();
+
+
+/**
+ * Catches a specific signal and the value of alarmReceiver becomes 0 
+*/
+void alarmReceiverHandler();
 
 /**
  * Sends a message and waits for response, using a Stop and Wait mechanism

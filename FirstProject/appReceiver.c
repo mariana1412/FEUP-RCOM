@@ -16,6 +16,7 @@ static int N = 0;
 void freeFile(){
     free(file->data);
     free(file->name);
+    free(file->controlPacket);
     free(file);
 }
 
@@ -27,7 +28,7 @@ int parseInfo(unsigned char *info, int size) {
     {
     case START_BYTE:
         if (parseControlPacket(info, size) < 0) return -1;
-        file->controlPacket = ++info; 
+        printf("parsed start\n");
         break;
 
     case DATA_BYTE:
@@ -69,8 +70,9 @@ int parseControlPacket(unsigned char *info, int size) {
             file->controlPacket[index++] = info[i];
             l = info[i++];
             j = 0;
-            unsigned char* size = (unsigned char*)malloc(l);
-            if(size == NULL){
+
+            unsigned char* sizeString = (unsigned char*)malloc(l+1);
+            if(sizeString == NULL){
                 printf("Could not allocate memory for size!\n");
                 free(file->name);
                 free(file);
@@ -80,10 +82,12 @@ int parseControlPacket(unsigned char *info, int size) {
             while (j != l)
             {
                 file->controlPacket[index++] = info[i];
-                size[j] = info[i++];
+                sizeString[j] = info[i++];
                 j++;
             }
-            file->size = atoi(size);
+            sizeString[j] = 0;
+            file->size = atoi(sizeString);
+            free(sizeString);
 
         } else if (info[i] == FILENAME) {
             file->controlPacket[index++] = info[i++];
@@ -97,6 +101,7 @@ int parseControlPacket(unsigned char *info, int size) {
                 file->controlPacket[index++] = info[i];
                 file->name[j++] = info[i++];
             }
+            file->name[j] = 0;
             break;
         }
     }
@@ -187,11 +192,6 @@ int parseDataPacket(unsigned char *info, int size)
 
     int K = 256 * L2 + L1;
 
-    if (index + K > file->size)
-    {
-        printf("index + K > size\n");
-        return -1;
-    }
 
     for (int i = 0; i < K; i++)
     {
@@ -262,6 +262,10 @@ int main(int argc, char **argv)
         return -1;
     }
 
+    
+    time_t t;
+    srand((unsigned) time(&t));
+
     while (!finished)
     {
         unsigned char *info = (unsigned char *)malloc(MAX_PACKET_SIZE);
@@ -276,7 +280,16 @@ int main(int argc, char **argv)
 
         size = llread(fd, info);
 
-        if (size < 0) continue;
+        if (size < 0) {
+            free(info);
+            continue;
+        } else if(size == 0) {
+            printf("Timeout, closing.\n");
+            free(info);
+            freeFile();
+            if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
+            return -1;
+        }
         totalSize += size;
 
         int result = parseInfo(info, size);
@@ -287,11 +300,12 @@ int main(int argc, char **argv)
             break;
 
         packets++;
+
         free(info);
     }
 
     if (!finished){
-        printf("cycle interrupted!\n");
+        printf("Data reception interrupted!\n");
         if (closePort(fd, RECEIVER) < 0) printf("closePort failed\n");
         return -1;
     }
@@ -299,10 +313,8 @@ int main(int argc, char **argv)
     {
         printf("Received %d bytes and %d packets.\n", totalSize, packets);
 
-        printf("%d\n", file->lastIndex);
-
-        char* filename = (char*)malloc(13);
-        sprintf(filename, "./imagesToReceive/%s", file->name);
+        unsigned char* filename = (unsigned char*)malloc(MAX_VALUE_SIZE);
+        sprintf(filename, "./imagesToReceive%s", file->name);
 
         int fileDescriptor = open(filename, O_RDWR | O_CREAT, 0777);
         if (fileDescriptor < 0)

@@ -7,7 +7,7 @@ int llopen(int port, int status)
 {
     struct sigaction newAction, oldAction;
 
-    newAction.sa_handler = alarmHandler;
+    newAction.sa_handler = alarmSenderHandler;
     sigemptyset(&newAction.sa_mask);
     newAction.sa_flags = 0;
 
@@ -58,7 +58,7 @@ int llwrite(int fd, char *buffer, int length)
 {
     struct sigaction newAction, oldAction;
 
-    newAction.sa_handler = alarmHandler;
+    newAction.sa_handler = alarmSenderHandler;
     sigemptyset(&newAction.sa_mask);
     newAction.sa_flags = 0;
 
@@ -67,7 +67,7 @@ int llwrite(int fd, char *buffer, int length)
     int bytesSent;
     int response;
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < ATTEMPTS; i++)
     {
         bytesSent = sendInfoFrame(fd, senderNS, buffer, length);
         if (bytesSent == -1)
@@ -124,16 +124,18 @@ int llread(int fd, char *buffer)
     int receive = receiveInfoFrame(fd, buffer, receiverNS);
 
     if (receive == 1) {
-        printf("Sent rej message!\n");
+        printf("Sent REJ message!\n");
         sendAckFrame(fd, REJ, receiverNS);
         return -1;
     }
     else if (receive == 0)
     {
-        printf("Sent rr message!\n");
+        printf("Sent RR message!\n");
         receiverNS = 1 - receiverNS;
         sendAckFrame(fd, RR, receiverNS);
         return IFRAME_SIZE;
+    } else if (receive == -2) {
+        return 0;
     } else return -1;
 
 }
@@ -142,7 +144,7 @@ int llclose(int fd, int status)
 {
     struct sigaction newAction, oldAction;
 
-    newAction.sa_handler = alarmHandler;
+    newAction.sa_handler = alarmSenderHandler;
     sigemptyset(&newAction.sa_mask);
     newAction.sa_flags = 0;
 

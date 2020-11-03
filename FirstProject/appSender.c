@@ -147,8 +147,6 @@ int main(int argc, char **argv)
         return -1;
     }
 
-    printf("SIZE: %d, %ld\n", size, fileInfo.st_size);
-
     free(StartPacket);
     free(fileBuffer);
     free(dataPacket);

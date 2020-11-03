@@ -1,11 +1,18 @@
 #include "protocol.h"
 
 int alarmSender = 1;
+int alarmReceiver = 1;
 
 
-void alarmHandler()
+void alarmSenderHandler()
 {
     alarmSender = 0;
+    return;
+}
+
+void alarmReceiverHandler()
+{
+    alarmReceiver = 0;
     return;
 }
 
@@ -13,7 +20,7 @@ int SandWOpenClose(int fd, ControlCommand send, char sendAddress, ControlCommand
 {
     int rec;
 
-    for (int i = 0; i < 4; i++)
+    for (int i = 0; i < ATTEMPTS; i++)
     {
         if (sendOpenCloseFrame(fd, send, sendAddress) == -1)
         {
@@ -164,7 +171,7 @@ int receiveAckFrame(int fd, int ns)
             {
                 acknowledged = 0;
             }
-            else if (nr - 2 == ns)
+            else if (nr - 2 == 1 - ns)
             {
                 acknowledged = 1;
             }
@@ -183,12 +190,7 @@ int sendInfoFrame(int fd, int ns, unsigned char *info, int length)
     if (infoFrame == NULL)
     {
         printf("Could not allocate memory for infoFrame!\n");
-        if (llclose(fd, SENDER) < 0)
-        {
-            printf("llclose failed\n");
-            exit(1);
-        }
-        return 0;
+        return -1;
     }
 
     infoFrame[index++] = FLAG;
@@ -221,6 +223,8 @@ int sendInfoFrame(int fd, int ns, unsigned char *info, int length)
 
     res = write(fd, infoFrame, index);
 
+    free(infoFrame);
+
     if (res < 1)
         return -1;
 
@@ -229,6 +233,14 @@ int sendInfoFrame(int fd, int ns, unsigned char *info, int length)
 
 int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
 {
+    struct sigaction newAction, oldAction;
+
+    newAction.sa_handler = alarmReceiverHandler;
+    sigemptyset(&newAction.sa_mask);
+    newAction.sa_flags = 0;
+
+    sigaction(SIGALRM, &newAction, &oldAction);
+
     unsigned char buf[255];
     int res;
     int i = 0;
@@ -236,9 +248,15 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
     int escaped = FALSE;
     int duplicated = FALSE;
 
+    int random;
+
     State state = START;
 
-    while (state != STOP && state != IGNORE && state != REJECTED) {
+    printf("Receiving...\n");
+
+    alarm(5);
+
+    while (state != STOP && state != IGNORE && state != REJECTED && alarmReceiver) {
         res = read(fd, buf, 1);
 
         if (res == 0) continue;
@@ -251,7 +269,14 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
 
         if (state == DATA)
         {
+            
             if (firstTime) {
+                // random = rand() % 100;
+                // if (random < 5) {
+                //     printf("Declaring wrong frame header with random number: %d\n", random);
+                //     state = IGNORE;
+                //     break;
+                // }
                 if (duplicated) break;
                 firstTime = FALSE;
             }
@@ -273,7 +298,7 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
                 {
                     escaped = TRUE;
                 }
-                else if (i < 509)
+                else if (i < MAX_PACKET_SIZE)
                 {
                     info[i++] = buf[0];
                 }
@@ -281,9 +306,18 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
         }
     }
 
+    if(alarmReceiver == 0) return -2;
+
     if (state == IGNORE) return -1;
     else if (state == REJECTED) return 1;
-    else return 0;
+    else {
+        // random = rand() % 100;
+        // if (random < 5) {
+        //     printf("Declaring wrong data with random number: %d\n", random);
+        //     return 1;
+        // } 
+        return 0;
+    }
 }
 
 int makeControlPacket(unsigned char control, long int fileSize, unsigned char *fileName, unsigned char *packet)
@@ -294,7 +328,7 @@ int makeControlPacket(unsigned char control, long int fileSize, unsigned char *f
 
     packet[index++] = FILESIZE;
 
-    unsigned char *n = (unsigned char *)malloc(8);
+    unsigned char *n = (unsigned char *)malloc(MAX_VALUE_SIZE);
     sprintf(n, "%ld", fileSize);
 
     packet[index++] = strlen(n);
@@ -303,6 +337,8 @@ int makeControlPacket(unsigned char control, long int fileSize, unsigned char *f
     {
         packet[index++] = n[i];
     }
+    
+    free(n);
 
     packet[index++] = FILENAME;
     packet[index++] = strlen(fileName);
