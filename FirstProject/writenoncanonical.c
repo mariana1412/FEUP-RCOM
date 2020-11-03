@@ -111,7 +111,7 @@ int main(int argc, char **argv)
             free(StartPacket);
             free(fileBuffer);
             free(dataPacket);
-            printf("Could not send Data Packet number %d\n", sequenceN);
+            printf("Could not send Data Packet number %ld\n", sequenceN);
             if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
             return -1;
         }

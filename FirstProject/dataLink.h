@@ -48,4 +48,16 @@ int llread(int fd, char *buffer);
  */
 int llclose(int fd, int status);
 
+void freeFile();
+
+int parseInfo(unsigned char *info, int size);
+
+int parseControlPacket(unsigned char *info, int size);
+
+int checkControlPacket(unsigned char *info, int size);
+
+int parseDataPacket(unsigned char *info, int size);
+
+int initFile();
+
 #endif /*DATALINK_H*/
