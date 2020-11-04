@@ -1,0 +1,46 @@
+protocol.c : if state data && i < max packet size
+
+state data:
+dataIndex++;
+        if (dataIndex < DATA_MAX_SIZE)
+        {
+            if (escaped)
+            {
+                if (byte == (FLAG ^ STUFF_BYTE))
+                {
+                    bcc2Check = bcc2Check ^ FLAG;
+                }
+                else if (byte == (ESCAPE ^ STUFF_BYTE))
+                {
+                    bcc2Check = bcc2Check ^ ESCAPE;
+                }
+                escaped = FALSE;
+            }
+            else if (byte == FLAG)
+            {
+                dataIndex = 0;
+                escaped = FALSE;
+                *state = FLAG_RCV;
+            }
+            else if (byte == ESCAPE)
+            {
+                escaped = TRUE;
+            }
+            else
+            {
+                bcc2Check = bcc2Check ^ byte;
+            }
+        }
+        else if (byte == FLAG)
+        {
+            dataIndex = 0;
+            escaped = FALSE;
+            *state = FLAG_RCV;
+        }
+        else
+        {
+            dataIndex = 0;
+            escaped = FALSE;
+            *state = C2_RCV;
+        }
+        break;
