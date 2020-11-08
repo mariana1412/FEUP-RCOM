@@ -267,7 +267,7 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
             if (aux != expectedNS) duplicated = TRUE;
         }
 
-        if (state == DATA)
+        if (state == DATA && i < MAX_PACKET_SIZE)
         {
             
             if (firstTime) {

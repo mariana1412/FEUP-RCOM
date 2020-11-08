@@ -191,7 +191,9 @@ int changeStateInfo(State *state, unsigned char byte, int fd)
             }
             else if (byte == FLAG)
             {
-                *state = FLAG;
+                dataIndex = 0;
+                escaped = FALSE;
+                *state = FLAG_RCV;
             }
             else if (byte == ESCAPE)
             {
@@ -202,8 +204,16 @@ int changeStateInfo(State *state, unsigned char byte, int fd)
                 bcc2Check = bcc2Check ^ byte;
             }
         }
+        else if (byte == FLAG)
+        {
+            dataIndex = 0;
+            escaped = FALSE;
+            *state = FLAG_RCV;
+        }
         else
         {
+            dataIndex = 0;
+            escaped = FALSE;
             *state = C2_RCV;
         }
         break;
