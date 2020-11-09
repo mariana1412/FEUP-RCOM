@@ -3,14 +3,6 @@
 
 #pragma once
 
-struct Frame_S
-{
-    char flag;
-    char address;
-    char command;
-    char bcc;
-} Frame_S;
-
 typedef struct File
 {
     long int size;
