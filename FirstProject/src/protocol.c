@@ -158,10 +158,9 @@ int receiveAckFrame(int fd, int ns)
     while (state != STOP_ACK && alarmSender == 1)
     {
         res = read(fd, buf, 1);
-        if (res == 0)
-            continue;
-        if (res < 0)
-            return -1;
+
+        if (res == 0) continue;
+        if (res < 0) return -1;
 
         nr = changeStateAck(&state, buf[0]);
 
@@ -270,7 +269,6 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
         if(state == FLAG_RCV) {
             i = 0;
             firstTime = TRUE;
-            printf("flagrcv\n");
         }
 
         if (state == DATA && i < MAX_PACKET_SIZE)

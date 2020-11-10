@@ -28,6 +28,7 @@ int llopen(int port, int status)
             printf("Could not receive UA Frame!\n");
             return -1;
         }
+        tcflush(fd, TCOFLUSH);
     }
     else if (status == RECEIVER)
     {
@@ -52,7 +53,6 @@ int llopen(int port, int status)
             printf("Could not read from port!\n");
         }
     }
-    tcflush(fd, TCIFLUSH);
     return -1;
 }
 
@@ -79,7 +79,7 @@ int llwrite(int fd, char *buffer, int length)
         }
         else
         {
-            printf("Sent I Frame! Attempt number %d\n", i + 1);
+            printf("Sent I Frame with ns %d! Attempt number %d\n", senderNS, i + 1);
         }
 
         alarmSender = 1;
@@ -128,17 +128,16 @@ int llread(int fd, char *buffer)
     if (receive == 1) {
         printf("Sent REJ message!\n");
         sendAckFrame(fd, REJ, receiverNS);
-        tcflush(fd, TCIFLUSH);
         return -1;
     }
     else if (receive == 0)
     {
-        printf("Sent RR message!\n");
         receiverNS = 1 - receiverNS;
+        printf("Sent RR message with ns %d!\n", receiverNS);
         sendAckFrame(fd, RR, receiverNS);
         return IFRAME_SIZE;
     } else if (receive == -3) {
-        printf("Received Duplicated Frame! Sent RR message!\n");
+        printf("Received Duplicated Frame! Sent RR message with ns %d!\n", receiverNS);
         sendAckFrame(fd, RR, receiverNS);
         return -1;
     } else if (receive == -2) {
