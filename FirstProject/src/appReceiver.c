@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <termios.h>
 #include <stdlib.h>
@@ -270,6 +271,9 @@ int main(int argc, char **argv)
     time_t t;
     srand((unsigned) time(&t));
 
+    struct timeval beginTime, endTime;
+    gettimeofday(&beginTime, NULL);
+
     while (!finished)
     {
         unsigned char *info = (unsigned char *)malloc(MAX_PACKET_SIZE);
@@ -315,6 +319,13 @@ int main(int argc, char **argv)
     }
     else
     {
+        gettimeofday(&endTime, NULL);
+    
+        double elapsed = (endTime.tv_sec - beginTime.tv_sec) * 1e6;
+        elapsed = (elapsed + (endTime.tv_usec - beginTime.tv_usec)) * 1e-6;
+
+        printf("Elapsed: %.5lf seconds\n", elapsed);
+
         printf("Received %d bytes and %d packets.\n", totalSize, packets);
 
         unsigned char* filename = (unsigned char*)malloc(MAX_VALUE_SIZE);

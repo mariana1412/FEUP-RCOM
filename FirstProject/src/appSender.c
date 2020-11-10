@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <sys/time.h>
 #include <fcntl.h>
 #include <stdlib.h>
 #include <string.h>
@@ -46,6 +47,9 @@ int main(int argc, char **argv)
         if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
         return -1;
     }
+
+    struct timeval beginTime, endTime;
+    gettimeofday(&beginTime, NULL);
 
     unsigned char *StartPacket = (unsigned char *)malloc(MAX_PACKET_SIZE);
     if (StartPacket == NULL)
@@ -146,6 +150,13 @@ int main(int argc, char **argv)
         if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
         return -1;
     }
+
+    gettimeofday(&endTime, NULL);
+    
+    double elapsed = (endTime.tv_sec - beginTime.tv_sec) * 1e6;
+    elapsed = (elapsed + (endTime.tv_usec - beginTime.tv_usec)) * 1e-6;
+
+    printf("Elapsed: %.5lf seconds\n", elapsed);
 
     free(StartPacket);
     free(fileBuffer);
