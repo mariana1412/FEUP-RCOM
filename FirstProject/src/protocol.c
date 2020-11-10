@@ -254,7 +254,7 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
 
     printf("Receiving...\n");
 
-    alarm(5);
+    alarm(20);
 
     while (state != STOP && state != IGNORE && state != REJECTED && alarmReceiver) {
         res = read(fd, buf, 1);
@@ -266,6 +266,8 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
         if (aux != -1) {
             if (aux != expectedNS) duplicated = TRUE;
         }
+
+        if(state == FLAG_RCV) i = 0;
 
         if (state == DATA && i < MAX_PACKET_SIZE)
         {

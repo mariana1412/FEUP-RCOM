@@ -20,40 +20,61 @@ void freeFile(){
     free(file);
 }
 
-int parseInfo(unsigned char *info, int size) {
+int checkControlPacket(unsigned char *info, int size) {
+    int i = 1;
+    int index = 0;
+    int l, j, k = 0;
 
-    unsigned char byte = info[0];
-
-    switch (byte)
-    {
-    case START_BYTE:
-        if (parseControlPacket(info, size) < 0) return -1;
-        printf("parsed start\n");
-        break;
-
-    case DATA_BYTE:
-        if (parseDataPacket(info, size) < 0){
-            freeFile();
-            return -1;
-        }
-        N++;
-        N %= 255;
-        break;
-
-    case END_BYTE:
-        if (checkControlPacket(info, size) < 0)
-        {
-            freeFile();
-            printf("End Control Packet is not correct!\n");
-            return -1;
-        }
-        return 1;
-        break;
-
-    default:
-        break;
+    unsigned char* temp = (unsigned char*)malloc(MAX_PACKET_SIZE);
+    if (temp == NULL) {
+        printf("Could not allocate memory for temp!\n");
+        return -1;
     }
 
+    while(i < size)
+    {
+        if (info[i] == FILESIZE)
+        {
+            temp[k++] = info[i];
+            i++;
+
+            temp[k++] = info[i];
+            l = info[i++];
+            j = 0;
+
+            while (j != l)
+            {
+                temp[k++] = info[i++];
+
+                j++;
+            }
+        }
+        else if (info[i] == FILENAME)
+        {
+            temp[k++] = info[i];
+            i++;
+            
+            temp[k++] = info[i];
+            l = info[i++];
+            j = 0;
+
+            while (j != l)
+            {
+                temp[k++] = info[i++];
+                j++;
+            }
+            break;
+        }
+    }
+
+    while (index < k) {
+        if (file->controlPacket[index] != temp[index++]) {
+            free(temp);
+            return -1;
+        }
+    }
+
+    free(temp);
     return 0;
 }
 
@@ -118,64 +139,6 @@ int parseControlPacket(unsigned char *info, int size) {
     return 0;
 }
 
-int checkControlPacket(unsigned char *info, int size) {
-    int i = 1;
-    int index = 0;
-    int l, j, k = 0;
-
-    unsigned char* temp = (unsigned char*)malloc(MAX_PACKET_SIZE);
-    if (temp == NULL) {
-        printf("Could not allocate memory for temp!\n");
-        return -1;
-    }
-
-    while(i < size)
-    {
-        if (info[i] == FILESIZE)
-        {
-            temp[k++] = info[i];
-            i++;
-
-            temp[k++] = info[i];
-            l = info[i++];
-            j = 0;
-
-            while (j != l)
-            {
-                temp[k++] = info[i++];
-
-                j++;
-            }
-        }
-        else if (info[i] == FILENAME)
-        {
-            temp[k++] = info[i];
-            i++;
-            
-            temp[k++] = info[i];
-            l = info[i++];
-            j = 0;
-
-            while (j != l)
-            {
-                temp[k++] = info[i++];
-                j++;
-            }
-            break;
-        }
-    }
-
-    while (index < k) {
-        if (file->controlPacket[index] != temp[index++]) {
-            free(temp);
-            return -1;
-        }
-    }
-
-    free(temp);
-    return 0;
-}
-
 int parseDataPacket(unsigned char *info, int size)
 {
     int index = 1;
@@ -221,6 +184,44 @@ int initFile(){
         free(file->data);
         free(file);
         return -1;
+    }
+
+    return 0;
+}
+
+int parseInfo(unsigned char *info, int size) {
+
+    unsigned char byte = info[0];
+
+    switch (byte)
+    {
+    case START_BYTE:
+        if (parseControlPacket(info, size) < 0) return -1;
+        printf("parsed start\n");
+        break;
+
+    case DATA_BYTE:
+        if (parseDataPacket(info, size) < 0){
+            freeFile();
+            return -1;
+        }
+        N++;
+        N %= 255;
+        break;
+
+    case END_BYTE:
+        printf("checking end packet\n");
+        if (checkControlPacket(info, size) < 0)
+        {
+            freeFile();
+            printf("End Control Packet is not correct!\n");
+            return -1;
+        }
+        return 1;
+        break;
+
+    default:
+        break;
     }
 
     return 0;
