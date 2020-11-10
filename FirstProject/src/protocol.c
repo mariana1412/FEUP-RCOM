@@ -253,7 +253,7 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
 
     printf("Receiving...\n");
 
-    alarm(20);
+    alarm(300);
 
     while (state != STOP && state != IGNORE && state != REJECTED && alarmReceiver) {
         res = read(fd, buf, 1);
