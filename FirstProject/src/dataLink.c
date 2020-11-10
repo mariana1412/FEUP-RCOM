@@ -126,6 +126,7 @@ int llread(int fd, char *buffer)
     if (receive == 1) {
         printf("Sent REJ message!\n");
         sendAckFrame(fd, REJ, receiverNS);
+        tcflush(fd, TCIFLUSH);
         return -1;
     }
     else if (receive == 0)

@@ -144,6 +144,8 @@ int parseDataPacket(unsigned char *info, int size)
     int index = 1;
     unsigned char byte = info[index++];
 
+    printf("n: %s\n", N);
+
     if (byte != N)
     {
         printf("Sequence number of data packet is not correct!\n");
