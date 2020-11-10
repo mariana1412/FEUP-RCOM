@@ -35,7 +35,7 @@
 #define REJ_ANSWER(R)   ((R == 0) ?  0x01 : 0x81)
 
 //I Frames
-#define IFRAME_SIZE     8192
+#define IFRAME_SIZE     2048
 #define DATA_MAX_SIZE   (IFRAME_SIZE - 6)
 #define NS(S)           ((S == 0) ?  0x00 : 0x40)
 #define ESCAPE          0x7D
