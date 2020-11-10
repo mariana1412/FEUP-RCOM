@@ -135,6 +135,10 @@ int llread(int fd, char *buffer)
         receiverNS = 1 - receiverNS;
         sendAckFrame(fd, RR, receiverNS);
         return IFRAME_SIZE;
+    } else if (receive == -3) {
+        printF("Received Duplicated Frame! Sent RR message!\n");
+        sendAckFrame(fd, RR, receiverNS);
+        return -1;
     } else if (receive == -2) {
         return 0;
     } else return -1;

@@ -282,7 +282,7 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
                 //     state = IGNORE;
                 //     break;
                 // }
-                if (duplicated) break;
+                if (duplicated) return -3;
                 firstTime = FALSE;
             }
             else
