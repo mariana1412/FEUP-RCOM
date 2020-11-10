@@ -269,6 +269,7 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
 
         if(state == FLAG_RCV) {
             i = 0;
+            firstTime = TRUE;
             printf("flagrcv\n");
         }
 

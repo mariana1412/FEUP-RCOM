@@ -194,6 +194,7 @@ int initFile(){
 int parseInfo(unsigned char *info, int size) {
 
     unsigned char byte = info[0];
+    printf("packet byte: ")
 
     switch (byte)
     {
