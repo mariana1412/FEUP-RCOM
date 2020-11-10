@@ -24,6 +24,7 @@ int llopen(int port, int status)
             return fd;
         else if (res == -1)
         {
+            tcflush(fd, TCIFLUSH);
             printf("Could not receive UA Frame!\n");
             return -1;
         }
@@ -51,6 +52,7 @@ int llopen(int port, int status)
             printf("Could not read from port!\n");
         }
     }
+    tcflush(fd, TCIFLUSH);
     return -1;
 }
 
