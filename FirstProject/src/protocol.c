@@ -167,7 +167,7 @@ int receiveAckFrame(int fd, int ns)
 
         if (state == ACK_RCV)
         {
-            if (nr == ns)
+            if (nr == ns ! || nr == 1 - ns)
             {
                 acknowledged = 0;
             }
