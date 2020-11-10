@@ -285,6 +285,7 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
                 // }
                 if (duplicated) return -3;
                 firstTime = FALSE;
+                escaped = FALSE;
             }
             else
             {
