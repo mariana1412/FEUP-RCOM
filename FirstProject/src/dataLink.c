@@ -38,18 +38,12 @@ int llopen(int port, int status)
         {
             res = sendOpenCloseFrame(fd, UA, SEND_REC);
             if (res == 0)
-            {
                 return fd;
-            }
             else
-            {
                 printf("Could not send UA Frame!\n");
-            }
         }
         else if (recSet == -1)
-        {
             printf("Could not read from port!\n");
-        }
     }
     return -1;
 }
