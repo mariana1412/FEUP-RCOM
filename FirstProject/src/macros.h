@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define BAUDRATE        B19200
+#define BAUDRATE        B38400
 #define MODEMDEVICE     "/dev/ttyS1"
 #define _POSIX_SOURCE   1 /* POSIX compliant source */
 #define _XOPEN_SOURCE   700
@@ -35,7 +35,7 @@
 #define REJ_ANSWER(R)   ((R == 0) ?  0x01 : 0x81)
 
 //I Frames
-#define IFRAME_SIZE     128
+#define IFRAME_SIZE     4096
 #define DATA_MAX_SIZE   (IFRAME_SIZE - 6)
 #define NS(S)           ((S == 0) ?  0x00 : 0x40)
 #define ESCAPE          0x7D
