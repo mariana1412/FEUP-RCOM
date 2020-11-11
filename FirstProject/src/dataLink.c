@@ -36,11 +36,11 @@ int llopen(int port, int status)
 
         if (recSet == 0)
         {
-            printf("Received SET Frame with success!\n");
+            //printf("Received SET Frame with success!\n");
             res = sendOpenCloseFrame(fd, UA, SEND_REC);
             if (res == 0)
             {
-                printf("Sent UA Frame!\n");
+                //printf("Sent UA Frame!\n");
                 return fd;
             }
             else
@@ -79,7 +79,7 @@ int llwrite(int fd, char *buffer, int length)
         }
         else
         {
-            printf("Sent I Frame with ns %d! Attempt number %d\n", senderNS, i + 1);
+            //printf("Sent I Frame with ns %d! Attempt number %d\n", senderNS, i + 1);
         }
 
         alarmSender = 1;
@@ -103,18 +103,18 @@ int llwrite(int fd, char *buffer, int length)
         {
             if (response == 0)
             {
-                printf("ACK Frame received with success!\n");
+                //printf("ACK Frame received with success!\n");
                 senderNS = 1 - senderNS;
                 return bytesSent;
             }
             else if (i < 3)
             {
-                printf("Rejected, trying again...\n");
+                //printf("Rejected, trying again...\n");
             }
         }
         else if (i < 3)
         {
-            printf("Timeout number %d, trying again...\n", i + 1);
+            //printf("Timeout number %d, trying again...\n", i + 1);
         }
     }
 
@@ -126,18 +126,18 @@ int llread(int fd, char *buffer)
     int receive = receiveInfoFrame(fd, buffer, receiverNS);
 
     if (receive == 1) {
-        printf("Sent REJ message!\n");
+        //printf("Sent REJ message!\n");
         sendAckFrame(fd, REJ, receiverNS);
         return -1;
     }
     else if (receive == 0)
     {
         receiverNS = 1 - receiverNS;
-        printf("Sent RR message with ns %d!\n", receiverNS);
+        //printf("Sent RR message with ns %d!\n", receiverNS);
         sendAckFrame(fd, RR, receiverNS);
         return IFRAME_SIZE;
     } else if (receive == -3) {
-        printf("Received Duplicated Frame! Sent RR message with ns %d!\n", receiverNS);
+        //printf("Received Duplicated Frame! Sent RR message with ns %d!\n", receiverNS);
         sendAckFrame(fd, RR, receiverNS);
         return -1;
     } else if (receive == -2) {
@@ -163,11 +163,11 @@ int llclose(int fd, int status)
         res = SandWOpenClose(fd, DISC, SEND_REC, DISC, REC_SEND);
         if (res == 0)
         {
-            printf("Received DISC Frame with success!\n");
+            //printf("Received DISC Frame with success!\n");
             res = sendOpenCloseFrame(fd, UA, REC_SEND);
             if (res == 0)
             {
-                printf("Sent UA Frame!\n");
+                //printf("Sent UA Frame!\n");
             }
             else
             {
@@ -187,11 +187,11 @@ int llclose(int fd, int status)
 
         if (recDISC == 0)
         {
-            printf("Received DISC Frame with success!\n");
+            //printf("Received DISC Frame with success!\n");
             res = SandWOpenClose(fd, DISC, REC_SEND, UA, REC_SEND);
             if (res == 0)
             {
-                printf("Received UA Frame with success!\n");
+                //printf("Received UA Frame with success!\n");
             }
             else if (res == -1)
             {

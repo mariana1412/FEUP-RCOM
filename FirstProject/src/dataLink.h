@@ -8,7 +8,7 @@
 #include <unistd.h>
 
 /**
- * Establishes a connection between devices, using a Stop and Wait mechanism.
+ * @brief Establishes a connection between devices, using a Stop and Wait mechanism.
  * 
  * @param port the port to be opened
  * @param status SENDER/RECEIVER
@@ -18,7 +18,7 @@
 int llopen(int port, int status);
 
 /**
- * Sends an array of characters to the other device, using a Stop and Wait mechanism
+ * @brief Sends an array of characters to the other device, using a Stop and Wait mechanism
  * 
  * @param fd the file descriptor
  * @param buffer the array to be sent
@@ -29,7 +29,7 @@ int llopen(int port, int status);
 int llwrite(int fd, char *buffer, int length);
 
 /**
- * Receives an array of characters from the other device, using a Stop and Wait mechanism.
+ * @brief Receives an array of characters from the other device, using a Stop and Wait mechanism.
  * 
  * @param fd the file descriptor
  * @param buffer the array to store the data received
@@ -39,7 +39,7 @@ int llwrite(int fd, char *buffer, int length);
 int llread(int fd, char *buffer);
 
 /**
- * Closes the connection previously established, using a Stop and Wait mechanism.
+ * @brief Closes the connection previously established, using a Stop and Wait mechanism.
  * 
  * @param fd the file descriptor to be closed
  * @param status SENDER/RECEIVER

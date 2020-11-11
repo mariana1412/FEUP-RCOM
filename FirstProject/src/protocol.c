@@ -29,7 +29,7 @@ int SandWOpenClose(int fd, ControlCommand send, char sendAddress, ControlCommand
         }
         else
         {
-            printf("Sent Frame with success! Attempt number %d\n", i + 1);
+            //printf("Sent Frame with success! Attempt number %d\n", i + 1);
         }
 
         alarmSender = 1;
@@ -251,7 +251,7 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
 
     State state = START;
 
-    printf("Receiving...\n");
+    //printf("Receiving...\n");
 
     alarm(300);
 
@@ -261,7 +261,7 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
         if (res == 0) continue;
         if (res < 0) return -1;
 
-        int aux = changeStateInfo(&state, buf[0], fd);
+        int aux = changeStateInfo(&state, buf[0]);
         if (aux != -1) {
             if (aux != expectedNS) duplicated = TRUE;
         }
@@ -275,12 +275,6 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
         {
             
             if (firstTime) {
-                // random = rand() % 100;
-                // if (random < 5) {
-                //     printf("Declaring wrong frame header with random number: %d\n", random);
-                //     state = IGNORE;
-                //     break;
-                // }
                 if (duplicated) return -3;
                 firstTime = FALSE;
                 escaped = FALSE;
@@ -315,61 +309,6 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
 
     if (state == IGNORE) return -1;
     else if (state == REJECTED) return 1;
-    else {
-        // random = rand() % 100;
-        // if (random < 5) {
-        //     printf("Declaring wrong data with random number: %d\n", random);
-        //     return 1;
-        // } 
-        return 0;
-    }
-}
-
-int makeControlPacket(unsigned char control, long int fileSize, unsigned char *fileName, unsigned char *packet)
-{
-    int index = 0;
-
-    packet[index++] = control;
-
-    packet[index++] = FILESIZE;
-
-    unsigned char *n = (unsigned char *)malloc(MAX_VALUE_SIZE);
-    sprintf(n, "%ld", fileSize);
-
-    packet[index++] = strlen(n);
-
-    for (int i = 0; i < packet[2]; i++)
-    {
-        packet[index++] = n[i];
-    }
     
-    free(n);
-
-    packet[index++] = FILENAME;
-    packet[index++] = strlen(fileName);
-
-    for (int j = 0; j < strlen(fileName); j++)
-    {
-        packet[index++] = fileName[j];
-    }
-
-    return index;
-}
-
-int makeDataPacket(unsigned char *info, int N, unsigned char *packet, int length)
-{
-    int index = 0;
-
-    packet[index++] = DATA_BYTE;
-    packet[index++] = N;
-
-    packet[index++] = length / 256;
-    packet[index++] = length % 256;
-
-    for (int i = 0; i < length; i++)
-    {
-        packet[index++] = info[i];
-    }
-
-    return index;
+    return 0;
 }

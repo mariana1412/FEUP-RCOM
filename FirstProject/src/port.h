@@ -14,7 +14,7 @@
 #include "macros.h"
 
 /**
- * Opens a serial port, saving its attributes in the respective termios static struct
+ * @brief Opens a serial port, saving its attributes in the respective termios static struct
  * 
  * @param portInt the port to be opened is "/dev/ttySX", where X is portInt
  * @param vtime the character timer
@@ -26,7 +26,7 @@
 int initPort(int portInt, int vtime, int vmin, int status);
 
 /**
- * Closes a serial port, setting its attributes from the respective termios static struct
+ * @brief Closes a serial port, setting its attributes from the respective termios static struct
  * 
  * @param fd the file descriptor of the port
  * @param status SENDER/RECEIVER
