@@ -1,15 +1,6 @@
-#include <stdio.h>
-#include <sys/types.h>
-#include <sys/stat.h>
-#include <sys/time.h>
-#include <fcntl.h>
-#include <stdlib.h>
-#include <string.h>
-#include <unistd.h>
-#include "dataLink.h"
+#include "appSender.h"
 
-int main(int argc, char **argv)
-{
+int main(int argc, char **argv) {
 
     if ((argc != 3) || ((strcmp("/dev/ttyS10", argv[1]) != 0) && (strcmp("/dev/ttyS11", argv[1]) != 0) && (strcmp("/dev/ttyS0", argv[1]) != 0) && (strcmp("/dev/ttyS1", argv[1]) != 0)))
     {
@@ -35,9 +26,8 @@ int main(int argc, char **argv)
     }
     else
     {
-        printf("Connection established with success!\n");
+        printf("\nConnection established with success!\n\n");
     }
-
 
     unsigned char *path = argv[2];
 
@@ -62,7 +52,6 @@ int main(int argc, char **argv)
     int packet_size;
 
     unsigned char *filename = strrchr(path, '/');
-
     packet_size = makeControlPacket(START_BYTE, fileInfo.st_size, filename, StartPacket);
 
     if (llwrite(fd, StartPacket, packet_size) == -1)
@@ -72,6 +61,8 @@ int main(int argc, char **argv)
         if (closePort(fd, SENDER) < 0) printf("closePort failed\n");
         return -1;
     }
+
+    printInformation(fileInfo.st_size, filename);
 
     int fdFile = open(path, O_RDONLY);
     if (fdFile == -1)
@@ -105,6 +96,9 @@ int main(int argc, char **argv)
     }
 
     int size = 0;
+    int packets = 2;
+    
+    printf("Sending...\n");
 
     while (charactersRead = read(fdFile, fileBuffer, MAX_K))
     {
@@ -123,6 +117,7 @@ int main(int argc, char **argv)
         sequenceN++;
         sequenceN %= 255;
         size += charactersRead;
+        packets++;
     }
 
     close(fdFile);
@@ -155,9 +150,7 @@ int main(int argc, char **argv)
     
     double elapsed = (endTime.tv_sec - beginTime.tv_sec) * 1e6;
     elapsed = (elapsed + (endTime.tv_usec - beginTime.tv_usec)) * 1e-6;
-
-    printf("Elapsed: %.5lf seconds\n", elapsed);
-
+    
     free(StartPacket);
     free(fileBuffer);
     free(dataPacket);
@@ -169,5 +162,71 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    printf("\nElapsed: %.5lf seconds\n", elapsed);
+    printf("Send %d packets.\n", packets);
+
     return 0;
+}
+
+void printInformation(long int filesize, unsigned char* filename){
+    
+    printf("======= Connection Information ======= \n");
+    printf("I Frame size: %d\n", IFRAME_SIZE);
+    printf("Retries: %d\n", ATTEMPTS);
+    printf("Timeout: %d\n", 3);
+
+    printf("======= File Information ======= \n");
+    printf("Name: %s\n", filename);
+    printf("Size: %ld\n\n", filesize);
+    
+    fflush(stdout);
+}
+
+int makeControlPacket(unsigned char control, long int fileSize, unsigned char *fileName, unsigned char *packet)
+{
+    int index = 0;
+
+    packet[index++] = control;
+
+    packet[index++] = FILESIZE;
+
+    unsigned char *n = (unsigned char *)malloc(MAX_VALUE_SIZE);
+    sprintf(n, "%ld", fileSize);
+
+    packet[index++] = strlen(n);
+
+    for (int i = 0; i < packet[2]; i++)
+    {
+        packet[index++] = n[i];
+    }
+    
+    free(n);
+
+    packet[index++] = FILENAME;
+    packet[index++] = strlen(fileName);
+
+    for (int j = 0; j < strlen(fileName); j++)
+    {
+        packet[index++] = fileName[j];
+    }
+
+    return index;
+}
+
+int makeDataPacket(unsigned char *info, int N, unsigned char *packet, int length)
+{
+    int index = 0;
+
+    packet[index++] = DATA_BYTE;
+    packet[index++] = N;
+
+    packet[index++] = length / 256;
+    packet[index++] = length % 256;
+
+    for (int i = 0; i < length; i++)
+    {
+        packet[index++] = info[i];
+    }
+
+    return index;
 }

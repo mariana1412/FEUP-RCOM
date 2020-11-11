@@ -6,7 +6,7 @@ static int escaped = FALSE;
 static int s = 0;
 static int dataIndex = 0;
 
-int changeStateS(State *state, unsigned char byte, ControlCommand command, unsigned char address)
+void changeStateS(State *state, unsigned char byte, ControlCommand command, unsigned char address)
 {
     int isCorrect;
 
@@ -108,10 +108,10 @@ int changeStateS(State *state, unsigned char byte, ControlCommand command, unsig
         }
         break;
     }
-    return 0;
+
 }
 
-int changeStateInfo(State *state, unsigned char byte, int fd)
+int changeStateInfo(State *state, unsigned char byte)
 {
     switch (*state)
     {
