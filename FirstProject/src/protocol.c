@@ -27,10 +27,6 @@ int SandWOpenClose(int fd, ControlCommand send, char sendAddress, ControlCommand
             printf("Could not send Frame! Attempt number %d\n", i + 1);
             return -1;
         }
-        else
-        {
-            //printf("Sent Frame with success! Attempt number %d\n", i + 1);
-        }
 
         alarmSender = 1;
         alarm(3);
@@ -250,8 +246,6 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
     int random;
 
     State state = START;
-
-    //printf("Receiving...\n");
 
     alarm(300);
 

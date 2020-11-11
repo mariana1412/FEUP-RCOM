@@ -206,13 +206,11 @@ void freeFile(){
 int parseInfo(unsigned char *info, int size) {
 
     unsigned char byte = info[0];
-    //printf("packet byte: %d", byte);
 
     switch (byte)
     {
     case START_BYTE:
         if (parseControlPacket(info, size) < 0) return -1;
-        //printf("parsed start\n");
         break;
 
     case DATA_BYTE:
@@ -225,7 +223,6 @@ int parseInfo(unsigned char *info, int size) {
         break;
 
     case END_BYTE:
-        //printf("checking end packet\n");
         if (checkControlPacket(info, size) < 0)
         {
             freeFile();
@@ -307,8 +304,6 @@ int parseDataPacket(unsigned char *info, int size)
 {
     int index = 1;
     unsigned char byte = info[index++];
-
-    //printf("n: %d\n", N);
 
     if (byte != N)
     {

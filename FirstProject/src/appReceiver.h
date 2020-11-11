@@ -16,11 +16,20 @@
 #include "macros.h"
 #include "dataStructures.h"
 
+/**
+ * @brief shows the connection information on the screen
+ * 
+ */
 void printConnectionInfo();
+
+/**
+ * @brief shows the file information on the screen
+ * 
+ */
 void printFileInformation(long int filesize, unsigned char* filename);
 
 /**
- * @brief Initiliazes and allocates memory for the struct File and its members
+ * @brief Initializes and allocates memory for the struct File and its members
  * 
  * @return 0 on success; -1 on error
 */
@@ -32,7 +41,7 @@ int initFile();
 void freeFile();
 
 /**
- * @brief Fowars info and its size to the respective function according to info's first byte
+ * @brief Fowards info and its size to the respective function according to info's first byte
  * 
  * @param info the packet to parse
  * @param size the size of the packet to parse
