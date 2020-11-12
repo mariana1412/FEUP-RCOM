@@ -103,5 +103,12 @@ int sendInfoFrame(int fd, int ns, unsigned char *info, int length);
  */
 int receiveInfoFrame(int fd, unsigned char *info, int expectedNS);
 
+/**
+ *@brief generates random errors at a certain rate
+ * 
+ * 
+ *@return 1 if error, 0 otherwise
+ */
+int getRandomError(int percentage);
 
 #endif /*PROTOCOL_H*/

@@ -272,6 +272,10 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
                 if (duplicated) return -3;
                 firstTime = FALSE;
                 escaped = FALSE;
+                if (getRandomError(3)) {
+                    state = IGNORE;
+                    break;
+                }
             }
             else
             {
@@ -302,7 +306,13 @@ int receiveInfoFrame(int fd, unsigned char *info, int expectedNS)
     if(alarmReceiver == 0) return -2;
 
     if (state == IGNORE) return -1;
-    else if (state == REJECTED) return 1;
-    
+    else if (state == REJECTED || getRandomError(3)) return 1;
     return 0;
+}
+
+int getRandomError(int percentage){
+    int random = rand() % 100;
+
+    if (random < percentage) return 1;
+    else return 0;
 }
