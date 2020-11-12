@@ -3,7 +3,7 @@
 
 #pragma once
 
-#define BAUDRATE        B1200
+#define BAUDRATE        B2400
 #define MODEMDEVICE     "/dev/ttyS1"
 #define _POSIX_SOURCE   1 /* POSIX compliant source */
 #define _XOPEN_SOURCE   700
