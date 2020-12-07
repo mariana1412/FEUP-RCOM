@@ -52,7 +52,7 @@ int parse_file_url(char * url, url_struct *urlInfo) { //format ftp://[<user>:<pa
 int getIpAddress(url_struct *url){ //getip.c moodle
 
     struct hostent *h;
-
+    
     if ((h = gethostbyname(url->host)) == NULL) {  
         herror("gethostbyname");
         return -1;

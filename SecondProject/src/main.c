@@ -30,11 +30,11 @@ int main(int argc, char *argv[]) {
 
     printf("URL is parsed!\n");
 
-    printURL(url);
-
     printf("GETTING IP ADDRESS... \n");
     if(getIpAddress(url) < 0) exit(1);
     printf("Ip address is ok!\n");
+
+    printURL(url);
 
     printf("Establishing a connection... \n");
     printf("Logging in...\n");
