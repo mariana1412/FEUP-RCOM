@@ -12,7 +12,8 @@
 #include <netinet/in.h> 
 #include <arpa/inet.h>
 
-#define MAX_STRING_SIZE 256
+#include "macros.h"
+
 
 /**
  * @brief Struct where it is stored the url information
@@ -24,6 +25,7 @@ typedef struct url_struct {
     char *url_path;
     char *filename;
     char *ip_address;
+    int port;
 
 } url_struct;
 

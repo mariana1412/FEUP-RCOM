@@ -9,6 +9,7 @@ url_struct * createUrlStruct() {
     url->url_path = malloc(MAX_STRING_SIZE);
     url->filename = malloc(MAX_STRING_SIZE);
     url->ip_address = malloc(MAX_STRING_SIZE);
+    url->port = 21; //this protocol uses port 21 by default
 
     return url;
 }
@@ -45,7 +46,8 @@ int parse_file_url(char * url, url_struct *urlInfo) { //format ftp://[<user>:<pa
     char *filename = strrchr(urlInfo->url_path, '/');
     if(filename == NULL) urlInfo->filename = urlInfo->url_path;
     else urlInfo->filename = ++filename;
-    
+        
+
     return 0;
 }
 
