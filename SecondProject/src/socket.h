@@ -26,14 +26,35 @@
 */
 int socket_establish_connection(int port, char* ip_address);
 
-
 /**
+ * @brief Reads server response
  * 
+ * @param socket_fd socket file descriptor
+ * @param response array where it will be stored the response message
+ * 
+ * @return response code on succes; -1 on error
 */
 int read_response(int socket_fd, char* response);
 
 /**
+ * @brief Sends a message to server
  * 
+ * @param socket_fd socket file descriptor
+ * @param command message to send
+ * 
+ * @return 0 on succes; -1 on error
+*/
+int send_command(int socket_fd, char * command);
+
+/**
+ * @brief Sends a message to server and reads its response, checking if it is valid
+ * 
+ * @param socket_fd socket file descriptor
+ * @param command message to send
+ * @param response_code code that server will send on success
+ * @param response array where it will be stored the response message
+ * 
+ * @return 0 on succes; -1 on error
 */
 int send_command_receive_response(int socket_fd, char* command, int response_code, char *response);
 

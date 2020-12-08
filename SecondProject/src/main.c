@@ -87,5 +87,8 @@ int main(int argc, char *argv[]) {
     }
 
     printf("Disconected with success!\n");
+
+    free(url);
+
     return 0;
 }

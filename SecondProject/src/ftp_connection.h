@@ -24,12 +24,45 @@
 */
 int ftp_connect(int port, char *ip_address);
 
+/**
+ * @brief Log in user, sending user name and password
+ * 
+ * @param socket_fd socket file descriptor
+ * @param username  user name
+ * @param password  user password
+ * 
+ * @return 0 on success; -1 on error
+*/
 int ftp_login(int socket_fd, char *username, char *password);
 
+/**
+ * @brief Enters passive mode and establishs a tcp connection with the new data port and ip address
+ * 
+ * @param socket_fd socket file descriptor
+ * 
+ * @return data socket descriptor on success; -1 on error
+*/
 int ftp_passive_mode(int socket_fd);
 
-int ftp_request_file(int socket_fd, const char*path);
+/**
+ * @brief Resquests the download of the file
+ * 
+ * @param socket_fd socket file descriptor
+ * @param path      file path
+ * 
+ * @return 0 on success; -1 on error
+*/
+int ftp_request_file(int socket_fd, const char* path);
 
+/**
+ * @brief Downloads file
+ * 
+ * @param socket_fd socket file descriptor
+ * @param path      file path
+ * @param filename  file name
+ * 
+ * @return 0 on success; -1 on error
+*/
 int ftp_download_file(int data_fd, const char *path, const char *filename);
 
 #endif /*FTP_CONNECTION_H*/

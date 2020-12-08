@@ -17,6 +17,7 @@ int ftp_connect(int port, char *ip_address) { //after successful connection, ser
         return -1;
     }
 
+    memset(response, 0, MAX_LINE_SIZE);
     return socket_fd;    
 }
 
@@ -41,12 +42,14 @@ int ftp_login(int socket_fd, char *username, char *password) {
     if (send_command_receive_response(socket_fd, pass_command, CMD_LOGIN_CORRECT, pass_response) < 0) return -1;
 
     
+    memset(user_command, 0, MAX_LINE_SIZE);
+    memset(user_response, 0, MAX_LINE_SIZE);
+    memset(pass_command, 0, MAX_LINE_SIZE);
+    memset(pass_response, 0, MAX_LINE_SIZE);
+
     return 0;
 }
 
-/*
-Send the PASV command before downloading the file and enter passive mode, so the FTP server will open a new port to receive file data.
-*/
 int ftp_passive_mode(int socket_fd) {
 
     /*> pasv
@@ -78,12 +81,17 @@ int ftp_passive_mode(int socket_fd) {
 
     //connects to the data port
     int data_fd = socket_establish_connection(data_port, ip_address);
+    
     if(data_fd < 0) return -1;
+
+    memset(ip_address, 0, MAX_STRING_SIZE);
+    memset(response, 0, MAX_LINE_SIZE);
 
     return data_fd;
 }
 
 int ftp_request_file(int socket_fd, const char*path) {
+
     /*
         > retr path
         < ... sending file
@@ -97,7 +105,7 @@ int ftp_request_file(int socket_fd, const char*path) {
     return 0;
 }
 
-int ftp_download_file(int data_fd, const char *path, const char *filename) { //request and download file
+int ftp_download_file(int data_fd, const char *path, const char *filename) { 
 
     int fd = open(filename, O_WRONLY | O_CREAT, 0666);
     if(fd < 0) {
@@ -109,13 +117,15 @@ int ftp_download_file(int data_fd, const char *path, const char *filename) { //r
     int bytes;
 
     while((bytes = read(data_fd, buf, MAX_LINE_SIZE)) > 0){
-        if(write(fd, buf, bytes) < bytes){
+        if(write(fd, buf, bytes) < bytes){                 //write the information that server is sending to the created file
             fprintf(stderr, "Error writing to file!\n");
             close(fd);
             return -1;
         }
 
     }
+
+    memset(buf, 0, MAX_LINE_SIZE);
     
     if(close(fd) < 0){
         fprintf(stderr, "Error closing file!\n");

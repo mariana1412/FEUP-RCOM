@@ -47,7 +47,6 @@ int parse_file_url(char * url, url_struct *urlInfo) { //format ftp://[<user>:<pa
     if(filename == NULL) urlInfo->filename = urlInfo->url_path;
     else urlInfo->filename = ++filename;
         
-
     return 0;
 }
 
