@@ -122,8 +122,8 @@ int ftp_download_file(int data_fd, const char *path, const char *filename) {
             close(fd);
             return -1;
         }
-
     }
+
 
     memset(buf, 0, MAX_LINE_SIZE);
     

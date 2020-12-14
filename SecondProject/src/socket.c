@@ -74,6 +74,7 @@ int send_command_receive_response(int socket_fd, char* command, int response_cod
     if(code < 0) return -1;
 
     if(code != response_code) {
+        if (response_code == CMD_USERNAME_CORRECT && code == CMD_LOGIN_CORRECT) return 0;
         fprintf(stderr, "Failed: Server sent a code that indicates error!\n");
         return -1;
     }

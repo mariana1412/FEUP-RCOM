@@ -18,8 +18,10 @@ int parse_file_url(char * url, url_struct *urlInfo) { //format ftp://[<user>:<pa
     
     char *ftp = malloc(MAX_STRING_SIZE);
     memcpy(ftp, url, 6);
+    ftp[6] = 0;
 
     if(strcmp(ftp, "ftp://") != 0) return -1;
+
 
     strtok(url, "/"); 
     char* rest_args = strtok(NULL, "") + 1; //[<user>:<password>@]<host>/<url-path>
@@ -53,7 +55,7 @@ int parse_file_url(char * url, url_struct *urlInfo) { //format ftp://[<user>:<pa
 int getIpAddress(url_struct *url){ //getip.c moodle
 
     struct hostent *h;
-    
+
     if ((h = gethostbyname(url->host)) == NULL) {  
         herror("gethostbyname");
         return -1;
