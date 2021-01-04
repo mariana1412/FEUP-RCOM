@@ -1,11 +1,9 @@
 # FEUP - Rede de Computadores
 
-Projetos desenvolvidos na unidade curricular de Redes de Computadores.
-
-| Name             | Number    | E-Mail             |
-| ---------------- | --------- | ------------------ |
-| Daniel Garcia Lima Sarmento da Silva    | 201806524 |up201806524@fe.up.pt|
-| Mariana Almeida Truta    | 201806543 |up201806543@fe.up.pt|
+|Nome             | E-Mail             |
+| ---------------- |  ------------------ |
+| Daniel Garcia Lima Sarmento da Silva    |up201806524@fe.up.pt|
+| Mariana Almeida Truta    |up201806543@fe.up.pt|
 
 ----
 
